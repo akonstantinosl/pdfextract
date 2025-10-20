@@ -19,9 +19,8 @@ jobs:
   build-release:
     runs-on: windows-latest
     
-    # Menambahkan izin untuk membuat rilis
     permissions:
-      contents: write
+      contents: write # Diperlukan untuk membuat rilis
 
     steps:
     # 1. Checkout kode
@@ -99,24 +98,31 @@ jobs:
       run: |
         curl.exe -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl" "https://github.com/jrsoftware/issrc/raw/main/Files/Languages/Unofficial/Indonesian.isl"
         
-    # 11.5. Dapatkan Versi dari Git Tag
+    # 11.5. Dapatkan Versi dari Git Tag (DIPERBARUI & AMAN)
     - name: Get version from Git tag
       id: get_version
       shell: pwsh
       run: |
-        # Mengambil "1.0.0" dari "refs/tags/v1.0.0"
-        $version = "${{ github.ref }}".Split('/')[-1].Substring(1)
-        echo "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "Release version is $version"
+        if ("${{ github.ref }}".StartsWith("refs/tags/v")) {
+          # Sukses: Mengambil "1.0.0" dari "refs/tags/v1.0.0"
+          $version = "${{ github.ref }}".Split('/')[-1].Substring(1)
+          echo "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "Release version is $version"
+        } else {
+          # Gagal: Workflow tidak dijalankan pada tag
+          echo "::error::Workflow ini harus dipicu dengan mendorong tag (misal: 'v1.0.0'), bukan branch."
+          echo "::error::Trigger terdeteksi: ${{ github.ref }}"
+          exit 1
+        }
 
-    # 12. Jalankan compiler Inno Setup
+    # 12. Jalankan compiler Inno Setup (DIPERBARUI)
     - name: Compile Inno Setup installer
       shell: cmd
       run: |
-        # Mengirimkan nomor versi ke Inno Setup
+        REM Mengirimkan nomor versi ke Inno Setup
         iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}"
 
-    # 13. Buat GitHub Release (LANGKAH BARU)
+    # 13. Buat GitHub Release
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       env:
@@ -124,9 +130,9 @@ jobs:
       with:
         tag_name: ${{ github.ref }}
         name: Release ${{ env.APP_VERSION }}
-        files: Output\PDFExtract-Setup-v${{ env.APP_VERSION }}.exe
+        files: Output\PDFExtract-Setup-v${{ env.APP_VERSION }}.exe # Nama file sekarang akan cocok
         
-    # 14. Upload Setup.exe sebagai artifact (OPSIONAL, DIPERBARUI)
+    # 14. Upload Setup.exe sebagai artifact (Opsional)
     - name: Upload installer artifact (Internal)
       uses: actions/upload-artifact@v4
       with:

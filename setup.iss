@@ -1,7 +1,9 @@
 ; Skrip Inno Setup untuk PDFExtract
 
 #define MyAppName "PDFExtract"
-#define MyAppVersion "1.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "0.0.0-dev"
+#endif
 #define MyAppPublisher "PDFExtract Developer"
 #define MyAppExeName "StartApp.bat"
 #define MyPopplerDirName "poppler-25.07.0" ; Pastikan ini sama dengan env di file .yml
