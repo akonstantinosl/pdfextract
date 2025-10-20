@@ -87,7 +87,7 @@ jobs:
     - name: Install Inno Setup
       shell: pwsh
       run: |
-        curl.exe -L -o "is-stable.exe" "https://files.jrsoftware.org/is/6/is-stable.exe"
+        curl.exe -L -o "is-stable.exe" "https://jrsoftware.org/download.php/is.exe?site=1"
         Start-Process -FilePath "is-stable.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOCANCEL", "/SP-", "/LOG=inno_setup_install.log" -Wait
         # Tambahkan Inno Setup ke PATH environment
         $Env:Path += ";C:\Program Files (x86)\Inno Setup 6"
@@ -96,7 +96,7 @@ jobs:
     - name: Download Inno Setup Indonesian Language File
       shell: pwsh
       run: |
-        curl.exe -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl" "https://github.com/jrsoftware/issrc/raw/main/Files/Languages/Indonesian.isl"
+        curl.exe -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl" "https://github.com/jrsoftware/issrc/blob/main/Files/Languages/Unofficial/Indonesian.isl"
         
     # 12. Jalankan compiler Inno Setup
     - name: Compile Inno Setup installer
