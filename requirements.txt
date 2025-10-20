@@ -1,0 +1,12 @@
+kivy
+plyer
+rapidocr_onnxruntime
+numpy
+Pillow
+pdf2image
+pandas
+openpyxl
+odfpy
+opencv-python
+scipy
+setuptools
