@@ -8,10 +8,10 @@ on:
 env:
   APP_NAME: "PDFExtract"
   PYTHON_VERSION: "3.12.7"
-  POPPLER_VERSION: "24.02.0"
+  POPPLER_VERSION: "25.07.0"
   PYTHON_EMBED_ZIP: "python-3.12.7-embed-amd64.zip"
-  POPPLER_ZIP: "Release-24.02.0-0.zip"
-  POPPLER_DIR_NAME: "poppler-24.02.0"
+  POPPLER_ZIP: "Release-25.07.0-0.zip"
+  POPPLER_DIR_NAME: "poppler-25.07.0"
   STAGING_DIR: "dist" 
 
 jobs:
@@ -62,7 +62,8 @@ jobs:
       shell: pwsh
       run: |
         echo "Downloading Poppler from ${{ env.POPPLER_VERSION }}..."
-        curl.exe -L -o "${{ env.POPPLER_ZIP }}" "https://github.com/osch/poppler-windows/releases/download/v${{ env.POPPLER_VERSION }}-0/${{ env.POPPLER_ZIP }}"
+        # URL di langkah ini sekarang otomatis menggunakan POPPLER_VERSION dan POPPLER_ZIP yang baru
+        curl.exe -L -o "${{ env.POPPLER_ZIP }}" "https://github.com/oschwartz10612/poppler-windows/releases/download/v${{ env.POPPLER_VERSION }}-0/${{ env.POPPLER_ZIP }}"
         
         echo "Extracting Poppler..."
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\poppler_bin"
