@@ -44,6 +44,7 @@ Source: "dist\wheels\*"; DestDir: "{app}\wheels"; Flags: recursesubdirs createal
 Source: "dist\main.py"; DestDir: "{app}"
 Source: "dist\get-pip.py"; DestDir: "{app}"
 Source: "dist\requirements.txt"; DestDir: "{app}"
+Source: "dist\install_libs.bat"; DestDir: "{app}"
 
 [Run]
 ; Ini adalah pengganti 'install.bat'.
@@ -52,13 +53,20 @@ Source: "dist\requirements.txt"; DestDir: "{app}"
 ; 1. Instal Pip
 Filename: "{app}\python\python.exe"; Parameters: """{app}\get-pip.py"""; WorkingDir: "{app}"; StatusMsg: "Memasang Pip..."
 
-; 2. Instal semua 'wheels' secara offline
-Filename: "{app}\python\Scripts\pip.exe"; Parameters: "install --no-index --find-links=""{app}\wheels"" -r ""{app}\requirements.txt"""; WorkingDir: "{app}"; StatusMsg: "Memasang library Python (Kivy, dll.)... Ini mungkin perlu beberapa saat."
+; 2. Jalankan skrip batch instalasi library yang sudah kita salin
+; File ini akan membuat pip_install_log.txt dengan sendirinya
+Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang library (Kivy, Pandas, dll.)... Ini mungkin perlu beberapa saat."
 
-; 3. Buat launcher 'StartApp.bat'
+; 3. Buat launcher 'StartApp.bat' (tetap gunakan python.exe untuk debug)
 Filename: "{cmd}"; Parameters: "/C echo @echo off > ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo :: Menyiapkan Poppler PATH >> ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo set ""PATH=%~dp0\poppler\Library\bin;%%PATH%%"" >> ""{app}\StartApp.bat"""; Flags: runhidden
+
+; Baris untuk cek versi Python (opsional tapi bagus untuk debug)
+Filename: "{cmd}"; Parameters: "/C echo :: Cek versi Python untuk debug >> ""{app}\StartApp.bat"""; Flags: runhidden
+Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" --version >> ""{app}\StartApp.bat"""; Flags: runhidden
+Filename: "{cmd}"; Parameters: "/C echo. >> ""{app}\StartApp.bat"""; Flags: runhidden
+
 Filename: "{cmd}"; Parameters: "/C echo :: Menjalankan aplikasi >> ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" ""%~dp0\main.py"" >> ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo pause >> ""{app}\StartApp.bat"""; Flags: runhidden
