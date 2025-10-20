@@ -1,9 +1,10 @@
-name: Build Windows Setup Wizard (EXE)
+name: Build and Release Windows Installer (EXE)
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    tags:
+      - 'v*.*.*' # Memicu HANYA saat tag (misal: v1.0.0) di-push
+  workflow_dispatch: # Memperbolehkan trigger manual
 
 env:
   APP_NAME: "PDFExtract"
@@ -15,8 +16,12 @@ env:
   STAGING_DIR: "dist" 
 
 jobs:
-  build-installer:
+  build-release:
     runs-on: windows-latest
+    
+    # Menambahkan izin untuk membuat rilis
+    permissions:
+      contents: write
 
     steps:
     # 1. Checkout kode
@@ -33,13 +38,12 @@ jobs:
     - name: Create staging directory
       run: mkdir ${{ env.STAGING_DIR }}
 
-    # 4. Unduh & Ekstrak Python Embeddable (FIX: Menggunakan curl)
+    # 4. Unduh & Ekstrak Python Embeddable
     - name: Download and extract Python Embeddable
       shell: pwsh
       run: |
         echo "Downloading Python from ${{ env.PYTHON_VERSION }}..."
         curl.exe -L -o "${{ env.PYTHON_EMBED_ZIP }}" "https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/${{ env.PYTHON_EMBED_ZIP }}"
-        
         echo "Extracting Python..."
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\python_embed"
         Expand-Archive -Path "${{ env.PYTHON_EMBED_ZIP }}" -DestinationPath "${{ env.STAGING_DIR }}\python_embed"
@@ -51,20 +55,18 @@ jobs:
         $pth_file = "${{ env.STAGING_DIR }}\python_embed\python312._pth"
         (Get-Content $pth_file) -replace '#import site', 'import site' | Set-Content $pth_file
 
-    # 6. Unduh get-pip.py (FIX: Menggunakan curl)
+    # 6. Unduh get-pip.py
     - name: Download get-pip.py
       shell: pwsh
       run: |
         curl.exe -L -o "${{ env.STAGING_DIR }}\get-pip.py" "https://bootstrap.pypa.io/get-pip.py"
 
-    # 7. Unduh & Ekstrak Poppler (FIX: Menggunakan curl)
+    # 7. Unduh & Ekstrak Poppler
     - name: Download and extract Poppler
       shell: pwsh
       run: |
         echo "Downloading Poppler from ${{ env.POPPLER_VERSION }}..."
-        # URL di langkah ini sekarang otomatis menggunakan POPPLER_VERSION dan POPPLER_ZIP yang baru
         curl.exe -L -o "${{ env.POPPLER_ZIP }}" "https://github.com/oschwartz10612/poppler-windows/releases/download/v${{ env.POPPLER_VERSION }}-0/${{ env.POPPLER_ZIP }}"
-        
         echo "Extracting Poppler..."
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\poppler_bin"
         Expand-Archive -Path "${{ env.POPPLER_ZIP }}" -DestinationPath "${{ env.STAGING_DIR }}\poppler_bin"
@@ -83,30 +85,50 @@ jobs:
         mkdir ${{ env.STAGING_DIR }}\wheels
         pip download -d ${{ env.STAGING_DIR }}\wheels -r ${{ env.STAGING_DIR }}\requirements.txt
 
-    # 10. Install Inno Setup (FIX: Menggunakan curl)
+    # 10. Install Inno Setup
     - name: Install Inno Setup
       shell: pwsh
       run: |
         curl.exe -L -o "is-stable.exe" "https://jrsoftware.org/download.php/is.exe?site=1"
         Start-Process -FilePath "is-stable.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOCANCEL", "/SP-", "/LOG=inno_setup_install.log" -Wait
-        # Tambahkan Inno Setup ke PATH environment
         $Env:Path += ";C:\Program Files (x86)\Inno Setup 6"
       
-    # 11. Unduh file Bahasa Indonesia (FIX: Menggunakan curl)
+    # 11. Unduh file Bahasa Indonesia
     - name: Download Inno Setup Indonesian Language File
       shell: pwsh
       run: |
         curl.exe -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl" "https://github.com/jrsoftware/issrc/raw/main/Files/Languages/Unofficial/Indonesian.isl"
         
+    # 11.5. Dapatkan Versi dari Git Tag
+    - name: Get version from Git tag
+      id: get_version
+      shell: pwsh
+      run: |
+        # Mengambil "1.0.0" dari "refs/tags/v1.0.0"
+        $version = "${{ github.ref }}".Split('/')[-1].Substring(1)
+        echo "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "Release version is $version"
+
     # 12. Jalankan compiler Inno Setup
     - name: Compile Inno Setup installer
       shell: cmd
       run: |
-        iscc.exe "setup.iss"
+        # Mengirimkan nomor versi ke Inno Setup
+        iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}"
 
-    # 13. Upload Setup.exe sebagai artifact
-    - name: Upload installer artifact
+    # 13. Buat GitHub Release (LANGKAH BARU)
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        name: Release ${{ env.APP_VERSION }}
+        files: Output\PDFExtract-Setup-v${{ env.APP_VERSION }}.exe
+        
+    # 14. Upload Setup.exe sebagai artifact (OPSIONAL, DIPERBARUI)
+    - name: Upload installer artifact (Internal)
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.APP_NAME }}_Windows_Setup
-        path: Output\PDFExtract-Setup-v1.0.exe
+        name: ${{ env.APP_NAME }}_Windows_Setup_${{ env.APP_VERSION }}
+        path: Output\PDFExtract-Setup-v${{ env.APP_VERSION }}.exe
