@@ -96,7 +96,7 @@ jobs:
     - name: Download Inno Setup Indonesian Language File
       shell: pwsh
       run: |
-        curl.exe -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl" "https://github.com/jrsoftware/issrc/blob/main/Files/Languages/Unofficial/Indonesian.isl"
+        curl.exe -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl" "https://github.com/jrsoftware/issrc/raw/main/Files/Languages/Unofficial/Indonesian.isl"
         
     # 12. Jalankan compiler Inno Setup
     - name: Compile Inno Setup installer

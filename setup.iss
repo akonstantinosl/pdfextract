@@ -4,7 +4,7 @@
 #define MyAppVersion "1.0"
 #define MyAppPublisher "PDFExtract Developer"
 #define MyAppExeName "StartApp.bat"
-#define MyPopplerDirName "poppler-24.02.0" ; Pastikan ini sama dengan env di file .yml
+#define MyPopplerDirName "poppler-25.07.0" ; Pastikan ini sama dengan env di file .yml
 
 [Setup]
 AppName={#MyAppName}
