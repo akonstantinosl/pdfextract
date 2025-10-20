@@ -130,11 +130,12 @@ jobs:
       with:
         tag_name: ${{ github.ref }}
         name: Release ${{ env.APP_VERSION }}
-        files: Output\PDFExtract-Setup-v${{ env.APP_VERSION }}.exe # Nama file sekarang akan cocok
+        # --- INI ADALAH BARIS YANG DIPERBAIKI ---
+        files: Output/PDFExtract-Setup-v${{ env.APP_VERSION }}.exe
         
     # 14. Upload Setup.exe sebagai artifact (Opsional)
     - name: Upload installer artifact (Internal)
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.APP_NAME }}_Windows_Setup_${{ env.APP_VERSION }}
-        path: Output\PDFExtract-Setup-v${{ env.APP_VERSION }}.exe
+        path: Output/PDFExtract-Setup-v${{ env.APP_VERSION }}.exe
