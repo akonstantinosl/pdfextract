@@ -45,19 +45,23 @@ Source: "dist\main.py"; DestDir: "{app}"
 Source: "dist\get-pip.py"; DestDir: "{app}"
 Source: "dist\requirements.txt"; DestDir: "{app}"
 Source: "dist\install_libs.bat"; DestDir: "{app}"
+Source: "dist\vc_redist.x64.exe"; DestDir: "{app}"
 
 [Run]
 ; Ini adalah pengganti 'install.bat'.
 ; Dijalankan secara otomatis selama proses instalasi wizard.
 
-; 1. Instal Pip
+; 1. Instal VC++ Redistributable TERLEBIH DAHULU (Wajib untuk ONNX Runtime)
+;    /install /passive /norestart -> Instal diam-diam tanpa restart paksa
+Filename: "{app}\vc_redist.x64.exe"; Parameters: "/install /passive /norestart"; WorkingDir: "{app}"; StatusMsg: "Memasang Microsoft Visual C++ Runtime..."
+
+; 2. Instal Pip
 Filename: "{app}\python\python.exe"; Parameters: """{app}\get-pip.py"""; WorkingDir: "{app}"; StatusMsg: "Memasang Pip..."
 
-; 2. Jalankan skrip batch instalasi library yang sudah kita salin
-; File ini akan membuat pip_install_log.txt dengan sendirinya
-Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang library (Kivy, Pandas, dll.)... Ini mungkin perlu beberapa saat."
+; 3. Jalankan skrip batch instalasi library
+Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang library Python (Kivy, Pandas, dll.)... Ini mungkin perlu beberapa saat."
 
-; 3. Buat launcher 'StartApp.bat' (tetap gunakan python.exe untuk debug)
+; 4. Buat launcher 'StartApp.bat' (Gunakan pythonw.exe lagi setelah debug selesai)
 Filename: "{cmd}"; Parameters: "/C echo @echo off > ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo :: Menyiapkan Poppler PATH >> ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo set ""PATH=%~dp0\poppler\Library\bin;%%PATH%%"" >> ""{app}\StartApp.bat"""; Flags: runhidden
@@ -68,8 +72,8 @@ Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" --version >>
 Filename: "{cmd}"; Parameters: "/C echo. >> ""{app}\StartApp.bat"""; Flags: runhidden
 
 Filename: "{cmd}"; Parameters: "/C echo :: Menjalankan aplikasi >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" ""%~dp0\main.py"" >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo pause >> ""{app}\StartApp.bat"""; Flags: runhidden
+Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" ""%~dp0\main.py"" >> ""{app}\StartApp.bat"""; Flags: runhidden # Tetap python.exe untuk debug
+Filename: "{cmd}"; Parameters: "/C echo pause >> ""{app}\StartApp.bat"""; Flags: runhidden # Tetap pause untuk debug
 
 [Icons]
 ; Shortcut di Start Menu

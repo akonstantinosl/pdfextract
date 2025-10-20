@@ -42,9 +42,9 @@ else:
     application_path = os.path.dirname(os.path.abspath(__file__))
 
 
-det_model_path = os.path.join(application_path, 'ch_PP-OCRv4_det_infer.onnx')
-cls_model_path = os.path.join(application_path, 'ch_ppocr_mobile_v2.0_cls_infer.onnx')
-rec_model_path = os.path.join(application_path, 'ch_PP-OCRv4_rec_infer.onnx')
+det_model_path = os.path.join(application_path, 'models', 'ch_PP-OCRv4_det_infer.onnx')
+cls_model_path = os.path.join(application_path, 'models', 'ch_ppocr_mobile_v2.0_cls_infer.onnx')
+rec_model_path = os.path.join(application_path, 'models', 'ch_PP-OCRv4_rec_infer.onnx')
 # Inisialisasi engine OCR
 print("Memuat model OCR...")
 engine = RapidOCR(

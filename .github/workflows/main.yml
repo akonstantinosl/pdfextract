@@ -111,6 +111,15 @@ jobs:
 
         # Langkah 3: Unduh 'odfpy' (dan dependensinya seperti defusedxml) secara terpisah.
         pip download -d ${{ env.STAGING_DIR }}\wheels odfpy
+    
+    # 9.5. Unduh VC++ Redistributable (Untuk ONNX Runtime)
+    - name: Download VC++ Redistributable
+      shell: pwsh
+      run: |
+        echo "Mengunduh VC++ Redistributable x64..."
+        # Link unduhan resmi dari Microsoft untuk versi terbaru x64
+        $vc_redist_url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+        curl.exe -L -o "${{ env.STAGING_DIR }}\vc_redist.x64.exe" $vc_redist_url
 
     # 10. Install Inno Setup
     - name: Install Inno Setup
