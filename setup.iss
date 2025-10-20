@@ -69,8 +69,10 @@ Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" --version >>
 Filename: "{cmd}"; Parameters: "/C echo. >> ""{app}\StartApp.bat"""; Flags: runhidden
 
 Filename: "{cmd}"; Parameters: "/C echo :: Menjalankan aplikasi >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" ""%~dp0\main.py"" >> ""{app}\StartApp.bat"""; Flags: runhidden ; Tetap python.exe untuk debug
-Filename: "{cmd}"; Parameters: "/C echo pause >> ""{app}\StartApp.bat"""; Flags: runhidden ; Tetap pause untuk debug
+; Tetap python.exe untuk debug
+Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" ""%~dp0\main.py"" >> ""{app}\StartApp.bat"""; Flags: runhidden
+; Tetap pause untuk debug
+Filename: "{cmd}"; Parameters: "/C echo pause >> ""{app}\StartApp.bat"""; Flags: runhidden
 
 [Icons]
 ; Shortcut di Start Menu
