@@ -12,7 +12,6 @@ env:
   PYTHON_EMBED_ZIP: "python-3.12.11-embed-amd64.zip"
   POPPLER_ZIP: "Release-24.02.0-0.zip"
   POPPLER_DIR_NAME: "poppler-24.02.0"
-  # Folder staging yang akan dibaca oleh Inno Setup
   STAGING_DIR: "dist" 
 
 jobs:
@@ -20,7 +19,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    # 1. Checkout kode (main.py, models/, requirements.txt, dan setup.iss baru Anda)
+    # 1. Checkout kode
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -30,17 +29,18 @@ jobs:
       with:
         python-version: '3.12'
 
-    # --- Bagian 1: Kumpulkan Semua "Bahan" ke folder 'dist' ---
-
     # 3. Buat folder staging 'dist'
     - name: Create staging directory
       run: mkdir ${{ env.STAGING_DIR }}
 
-    # 4. Unduh & Ekstrak Python Embeddable
+    # 4. Unduh & Ekstrak Python Embeddable (FIX: Menggunakan curl)
     - name: Download and extract Python Embeddable
       shell: pwsh
       run: |
-        Invoke-WebRequest -Uri "https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/${{ env.PYTHON_EMBED_ZIP }}" -OutFile "${{ env.PYTHON_EMBED_ZIP }}"
+        echo "Downloading Python from ${{ env.PYTHON_VERSION }}..."
+        curl.exe -L -o "${{ env.PYTHON_EMBED_ZIP }}" "https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/${{ env.PYTHON_EMBED_ZIP }}"
+        
+        echo "Extracting Python..."
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\python_embed"
         Expand-Archive -Path "${{ env.PYTHON_EMBED_ZIP }}" -DestinationPath "${{ env.STAGING_DIR }}\python_embed"
 
@@ -51,17 +51,20 @@ jobs:
         $pth_file = "${{ env.STAGING_DIR }}\python_embed\python312._pth"
         (Get-Content $pth_file) -replace '#import site', 'import site' | Set-Content $pth_file
 
-    # 6. Unduh get-pip.py
+    # 6. Unduh get-pip.py (FIX: Menggunakan curl)
     - name: Download get-pip.py
       shell: pwsh
       run: |
-        Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile "${{ env.STAGING_DIR }}\get-pip.py"
+        curl.exe -L -o "${{ env.STAGING_DIR }}\get-pip.py" "https://bootstrap.pypa.io/get-pip.py"
 
-    # 7. Unduh & Ekstrak Poppler
+    # 7. Unduh & Ekstrak Poppler (FIX: Menggunakan curl)
     - name: Download and extract Poppler
       shell: pwsh
       run: |
-        Invoke-WebRequest -Uri "https://github.com/osch/poppler-windows/releases/download/v${{ env.POPPLER_VERSION }}-0/${{ env.POPPLER_ZIP }}" -OutFile "${{ env.POPPLER_ZIP }}"
+        echo "Downloading Poppler from ${{ env.POPPLER_VERSION }}..."
+        curl.exe -L -o "${{ env.POPPLER_ZIP }}" "https://github.com/osch/poppler-windows/releases/download/v${{ env.POPPLER_VERSION }}-0/${{ env.POPPLER_ZIP }}"
+        
+        echo "Extracting Poppler..."
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\poppler_bin"
         Expand-Archive -Path "${{ env.POPPLER_ZIP }}" -DestinationPath "${{ env.STAGING_DIR }}\poppler_bin"
 
@@ -79,22 +82,20 @@ jobs:
         mkdir ${{ env.STAGING_DIR }}\wheels
         pip download -d ${{ env.STAGING_DIR }}\wheels -r ${{ env.STAGING_DIR }}\requirements.txt
 
-    # --- Bagian 2: Buat Setup Wizard (.exe) ---
-
-    # 10. Install Inno Setup di server GitHub
+    # 10. Install Inno Setup (FIX: Menggunakan curl)
     - name: Install Inno Setup
       shell: pwsh
       run: |
-        Invoke-WebRequest -Uri "https://files.jrsoftware.org/is/6/is-stable.exe" -OutFile "is-stable.exe"
+        curl.exe -L -o "is-stable.exe" "https://files.jrsoftware.org/is/6/is-stable.exe"
         Start-Process -FilePath "is-stable.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOCANCEL", "/SP-", "/LOG=inno_setup_install.log" -Wait
         # Tambahkan Inno Setup ke PATH environment
         $Env:Path += ";C:\Program Files (x86)\Inno Setup 6"
       
-    # 11. Unduh file Bahasa Indonesia untuk Inno Setup
+    # 11. Unduh file Bahasa Indonesia (FIX: Menggunakan curl)
     - name: Download Inno Setup Indonesian Language File
       shell: pwsh
       run: |
-        Invoke-WebRequest -Uri "https://github.com/jrsoftware/issrc/raw/main/Files/Languages/Indonesian.isl" -OutFile "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl"
+        curl.exe -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl" "https://github.com/jrsoftware/issrc/raw/main/Files/Languages/Indonesian.isl"
         
     # 12. Jalankan compiler Inno Setup
     - name: Compile Inno Setup installer
@@ -103,7 +104,6 @@ jobs:
         iscc.exe "setup.iss"
 
     # 13. Upload Setup.exe sebagai artifact
-    # Inno Setup secara default menempatkan output di folder 'Output'
     - name: Upload installer artifact
       uses: actions/upload-artifact@v4
       with:
