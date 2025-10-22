@@ -70,13 +70,18 @@ jobs:
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\poppler_bin"
         Expand-Archive -Path "${{ env.POPPLER_ZIP }}" -DestinationPath "${{ env.STAGING_DIR }}\poppler_bin"
 
-    # 8. Salin file aplikasi Anda
+    # 8. Salin file aplikasi ANDA DAN LOGO
     - name: Copy application files
       shell: cmd
       run: |
         copy main.py ${{ env.STAGING_DIR }}\main.py
         copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt
         copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat
+        REM Buat folder assets/img di staging jika belum ada
+        if not exist ${{ env.STAGING_DIR }}\assets mkdir ${{ env.STAGING_DIR }}\assets
+        if not exist ${{ env.STAGING_DIR }}\assets\img mkdir ${{ env.STAGING_DIR }}\assets\img
+        REM Salin logo
+        copy assets\img\pdfextract.png ${{ env.STAGING_DIR }}\pdfextract.png
         xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models
 
     # 9. Unduh semua 'wheels' (SOLUSI FINAL UNTUK ODFPY)
@@ -111,15 +116,6 @@ jobs:
 
         # Langkah 3: Unduh 'odfpy' (dan dependensinya seperti defusedxml) secara terpisah.
         pip download -d ${{ env.STAGING_DIR }}\wheels odfpy
-    
-    # 9.5. Unduh VC++ Redistributable (Untuk ONNX Runtime)
-    - name: Download VC++ Redistributable
-      shell: pwsh
-      run: |
-        echo "Mengunduh VC++ Redistributable x64..."
-        # Link unduhan resmi dari Microsoft untuk versi terbaru x64
-        $vc_redist_url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
-        curl.exe -L -o "${{ env.STAGING_DIR }}\vc_redist.x64.exe" $vc_redist_url
 
     # 10. Install Inno Setup
     - name: Install Inno Setup

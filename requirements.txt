@@ -1,4 +1,5 @@
 kivy
+kivymd
 plyer
 rapidocr_onnxruntime
 numpy

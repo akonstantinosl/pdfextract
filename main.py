@@ -1642,7 +1642,7 @@ class MainScreen(MDScreen):
 
 # --- Kelas Aplikasi Utama ---
 
-class PDFConverterApp(MDApp):
+class PDFExtractApp(MDApp):
     def build(self):
         """Metode build utama aplikasi Kivy. Mengatur judul jendela dan tema."""
         self.title = "PDFExtract" # Atur nama judul jendela
@@ -1655,4 +1655,4 @@ class PDFConverterApp(MDApp):
 # --- Entry Point Aplikasi ---
 
 if __name__ == '__main__':
-    PDFConverterApp().run()
+    PDFExtractApp().run()
