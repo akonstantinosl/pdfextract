@@ -20,13 +20,8 @@ OutputBaseFilename=PDFExtract-Setup-v{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=admin ; Meminta hak Admin
-
-OutputBaseFilename=PDFExtract-Setup-v{#MyAppVersion}
-Compression=lzma
-SolidCompression=yes
-WizardStyle=modern
-PrivilegesRequired=admin ; Meminta hak Admin
+ ; Meminta hak Admin, diperlukan untuk instalasi ke Program Files dan menjalankan pip
+ PrivilegesRequired=admin
 
 [Languages]
 Name: "indonesian"; MessagesFile: "compiler:Languages\Indonesian.isl"
