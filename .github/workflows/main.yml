@@ -146,12 +146,16 @@ jobs:
           exit 1
         }
 
-    # 12. Jalankan compiler Inno Setup (DIPERBARUI)
+    # 12. Jalankan compiler Inno Setup (DIPERBARUI DENGAN PATH IKON ABSOLUT)
     - name: Compile Inno Setup installer
       shell: cmd
       run: |
-        REM Mengirimkan nomor versi ke Inno Setup
-        iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}"
+        REM Definisikan path absolut ke ikon
+        set SETUP_ICON_PATH=${{ github.workspace }}\dist\pdfextract.png
+        echo "Setup Icon Path: %SETUP_ICON_PATH%"
+
+        REM Mengirimkan nomor versi DAN path ikon ke Inno Setup
+        iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}" /DSetupIconAbsPath="%SETUP_ICON_PATH%"
 
     # 13. Buat GitHub Release
     - name: Create GitHub Release
