@@ -14,15 +14,13 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName} ; Lokasi instalasi default
 DefaultGroupName={#MyAppName} ; Nama folder Start Menu default
-
-; --- Perubahan Alur Wizard & Logo ---
-DisableWelcomePage=no ; Tampilkan halaman Welcome
-DisableDirPage=no ; Tampilkan halaman Pilih Lokasi Instalasi
-DisableProgramGroupPage=no ; Tampilkan halaman Pilih Folder Start Menu (PENTING!)
-DisableReadyPage=no ; Tampilkan halaman Siap Instal
 SetupIconFile={app}\pdfextract.png ; Logo untuk file Setup.exe
 UninstallDisplayIcon={app}\pdfextract.png ; Logo untuk Uninstaller di Control Panel
-; --- Akhir Perubahan Alur Wizard & Logo ---
+OutputBaseFilename=PDFExtract-Setup-v{#MyAppVersion}
+Compression=lzma
+SolidCompression=yes
+WizardStyle=modern
+PrivilegesRequired=admin ; Meminta hak Admin
 
 OutputBaseFilename=PDFExtract-Setup-v{#MyAppVersion}
 Compression=lzma
