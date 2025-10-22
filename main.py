@@ -14,10 +14,7 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.list import OneLineListItem
 from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.gridlayout import MDGridLayout
-# --- PERUBAHAN ---
-# Impor MDDialog untuk "SweetAlert"
 from kivymd.uix.dialog import MDDialog
-# --- AKHIR PERUBAHAN ---
 from kivy.clock import mainthread, Clock
 from kivy.lang import Builder
 from kivy.core.window import Window
@@ -39,6 +36,7 @@ from scipy.ndimage import gaussian_filter1d
 from datetime import datetime
 
 
+# --- Logika Penentuan Path ---
 # Dapatkan direktori tempat skrip dijalankan
 if getattr(sys, 'frozen', False):
     # Jika dijalankan sebagai aplikasi yang di-bundle
@@ -48,6 +46,7 @@ else:
     application_path = os.path.dirname(os.path.abspath(__file__))
 
 
+# Tentukan path absolut ke model ONNX
 det_model_path = os.path.join(application_path, 'models', 'ch_PP-OCRv4_det_infer.onnx')
 cls_model_path = os.path.join(application_path, 'models', 'ch_ppocr_mobile_v2.0_cls_infer.onnx')
 rec_model_path = os.path.join(application_path, 'models', 'ch_PP-OCRv4_rec_infer.onnx')
@@ -66,8 +65,10 @@ engine = RapidOCR(
 )
 print("Model OCR berhasil dimuat.")
 
-# --- Backend Logic (TIDAK BERUBAH) ---
+# --- Logika Backend (Pemrosesan Gambar & PDF) ---
+
 def preprocess_image_for_ocr(img_array):
+    """Mempersiapkan gambar untuk OCR (grayscale, thresholding, sharpen) agar teks lebih jelas."""
     if len(img_array.shape) == 3:
         gray = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
     else:
@@ -83,6 +84,7 @@ def preprocess_image_for_ocr(img_array):
     return sharpened
 
 def detect_lines(img_gray, min_length=50, orientation='horizontal', line_type='any'):
+    """Mendeteksi garis horizontal atau vertikal menggunakan pemrosesan morfologi dan analisis profil."""
     height, width = img_gray.shape
     binary = cv2.adaptiveThreshold(
         img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
@@ -123,6 +125,7 @@ def detect_lines(img_gray, min_length=50, orientation='horizontal', line_type='a
         return lines
 
 def detect_tables(img_array, line_sensitivity=25, use_grid=True, dotted_line_support=True):
+    """Mendeteksi area tabel. Prioritaskan deteksi berbasis grid (garis). Jika gagal, gunakan deteksi berbasis tata letak teks."""
     gray = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
     if use_grid:
         if dotted_line_support:
@@ -151,9 +154,11 @@ def detect_tables(img_array, line_sensitivity=25, use_grid=True, dotted_line_sup
                     table_contours.append((x, y, w, h, horizontal_lines, vertical_lines))
         if table_contours:
             return table_contours
+    # Fallback jika deteksi grid gagal
     return text_based_table_detection(img_array, gray)
 
 def text_based_table_detection(img_array, gray):
+    """Menganalisis hasil OCR untuk mengelompokkan teks yang berdekatan secara horizontal dan vertikal untuk 'menebak' batas tabel."""
     preprocessed_img = preprocess_image_for_ocr(img_array)
     ocr_result = engine(preprocessed_img)
     if not ocr_result or len(ocr_result[0]) == 0:
@@ -210,6 +215,7 @@ def text_based_table_detection(img_array, gray):
     return table_candidates
 
 def detect_cells_from_text(text_items, table_width, table_height):
+    """Mengelompokkan koordinat X dan Y dari teks untuk menyimpulkan batas baris dan kolom (grid imajiner)."""
     if not text_items:
         return None, None
     avg_height = sum(item['height'] for item in text_items) / len(text_items)
@@ -252,6 +258,7 @@ def detect_cells_from_text(text_items, table_width, table_height):
     return row_boundaries, col_boundaries
 
 def process_table_ocr(ocr_results, table_rect, use_inferred_grid=True):
+    """Mengekstrak teks di dalam batas tabel dan memetakannya ke struktur sel (baris/kolom) berdasarkan grid yang disimpulkan."""
     x_table, y_table, w_table, h_table = table_rect[:4]
     if not ocr_results or len(ocr_results[0]) == 0:
         return None
@@ -296,9 +303,11 @@ def process_table_ocr(ocr_results, table_rect, use_inferred_grid=True):
                         else:
                             table_data[row_idx][col_idx] = text_item['text']
             return table_data
+    # Fallback jika grid imajiner gagal
     return reconstruct_table(table_texts, w_table, h_table)
 
 def reconstruct_table(texts, table_width, table_height):
+    """Metode alternatif untuk membangun tabel jika grid gagal, hanya berdasarkan pengelompokan Y (baris) dan X (kolom)."""
     if not texts:
         return None
     texts_sorted_by_y = sorted(texts, key=lambda t: t['y'])
@@ -352,6 +361,7 @@ def reconstruct_table(texts, table_width, table_height):
     return table_data
 
 def create_tables_export(tables, output_format='xlsx', sheet_names=None):
+    """Mengambil data tabel (list of DataFrame) dan mengekspornya ke format file yang diminta (XLSX, CSV, ODS) dalam bentuk bytes."""
     output = io.BytesIO()
     def auto_adjust_excel_column_widths(writer, sheet_name, dataframe):
         worksheet = writer.book[sheet_name]
@@ -394,6 +404,7 @@ def create_tables_export(tables, output_format='xlsx', sheet_names=None):
         if not tables:
             output.write(b'')
         else:
+             # Hanya ekspor tabel pertama jika CSV
              output.write(tables[0].to_csv(index=False, header=False, encoding='utf-8-sig').encode('utf-8-sig'))
         mime_type = "text/csv"
         file_ext = "csv"
@@ -409,12 +420,13 @@ def create_tables_export(tables, output_format='xlsx', sheet_names=None):
             file_ext = "ods"
         except Exception as e:
             print(f"Gagal membuat ODS: {e}")
-            output = io.BytesIO() # Kembalikan bytes kosong jika gagal
+            output = io.BytesIO()
 
     output.seek(0)
     return output.getvalue(), mime_type, file_ext
 
 def process_image_for_tables(img_array):
+    """Orkestrator utama untuk satu gambar: menjalankan deteksi tabel, lalu OCR, lalu mem-parsing tabel."""
     use_grid = True
     line_sensitivity = 25
     dotted_line_support = True
@@ -426,6 +438,7 @@ def process_image_for_tables(img_array):
         ocr_result = engine(img_array)
     table_rects = detect_tables(img_array, line_sensitivity, use_grid, dotted_line_support)
     if not table_rects:
+        # Jika tidak ada tabel terdeteksi, kembalikan semua teks sebagai satu kolom
         if isinstance(ocr_result, tuple) and len(ocr_result) >= 1 and ocr_result[0]:
             all_texts = [item[1] for item in ocr_result[0]]
             if all_texts:
@@ -441,6 +454,7 @@ def process_image_for_tables(img_array):
 
 
 def process_pdf(pdf_path, progress_callback=None):
+    """Mengkonversi setiap halaman PDF menjadi gambar, lalu memproses setiap gambar untuk tabel. Menggunakan callback untuk progres UI."""
     all_tables = []
     sheet_names = []
 
@@ -458,6 +472,7 @@ def process_pdf(pdf_path, progress_callback=None):
 
     for i in range(1, total_pages + 1):
         if progress_callback:
+            # Kirim progres ke UI
             progress_callback(i, total_pages)
 
         try:
@@ -476,6 +491,7 @@ def process_pdf(pdf_path, progress_callback=None):
                 all_tables.append(df)
                 sheet_names.append(f"Halaman {i}")
 
+            # Bersihkan memori
             del page_image
             del img_array
             gc.collect()
@@ -488,11 +504,11 @@ def process_pdf(pdf_path, progress_callback=None):
     return all_tables, sheet_names
 
 def process_image(image_path):
+    """Wrapper sederhana untuk memproses file gambar tunggal."""
     try:
         image = Image.open(image_path)
         img_array = np.array(image.convert('RGB'))
         tables = process_image_for_tables(img_array)
-        # Hapus objek gambar dan panggil GC
         del image
         del img_array
         gc.collect()
@@ -501,7 +517,7 @@ def process_image(image_path):
         print(f"Gagal memproses gambar {image_path}: {e}")
         return []
 
-# --- KivyMD UI Definition ---
+# --- KivyMD UI Definition (KV Lang) ---
 Window.clearcolor = (1, 1, 1, 1)
 
 KV = """
@@ -618,9 +634,7 @@ KV = """
 
         MDLabel:
             id: status_label
-            # --- PERUBAHAN ---
             text: 'Silakan pilih file (maks 5) dan klik Konversi.'
-            # --- AKHIR PERUBAHAN ---
             font_style: 'Subtitle1'
             halign: 'center'
             size_hint_y: None
@@ -634,7 +648,7 @@ KV = """
             height: dp(48)
             spacing: dp(10)
             adaptive_height: True
-            opacity: 1 
+            opacity: 1
             
             MDFillRoundFlatButton:
                 id: select_button
@@ -645,7 +659,7 @@ KV = """
 
             MDFillRoundFlatIconButton:
                 id: format_spinner_button
-                text: 'Pilih Format'  # <-- UBAH INI
+                text: 'Pilih Format'
                 icon: 'menu-down'
                 on_release: root.format_menu.open()
                 size_hint_x: 0.33
@@ -655,7 +669,7 @@ KV = """
                 text: 'Konversi Sekarang'
                 on_release: root.start_conversion()
                 size_hint_x: 0.33
-                disabled: True  # <-- TAMBAHKAN INI
+                disabled: True
 
         # Kontainer Daftar File (Processing)
         MDBoxLayout:
@@ -717,13 +731,11 @@ KV = """
         
         # Spacer
         MDBoxLayout:
-            # --- PERUBAHAN DI SINI ---
             # Aturan ini membuat spacer "menghilang" (tidak memakan ruang)
             # saat daftar file terlihat (opacity == 1).
             opacity: 0 if file_list_container.opacity == 1 else 1
             size_hint_y: 1 if file_list_container.opacity == 0 else None
             height: 0 if file_list_container.opacity == 1 else dp(1)
-            # --- AKHIR PERUBAHAN ---
 
 
 # --- LAYAR HASIL (UNDUH) ---
@@ -801,29 +813,25 @@ KV = """
                 spacing: dp(1)
                 md_bg_color: app.theme_cls.divider_color
 
-        # --- PERUBAHAN TATA LETAK TOMBOL ---
         # Layout container untuk menengahkan tombol
         MDBoxLayout:
             orientation: 'horizontal'
             adaptive_height: True
-            adaptive_width: True      # <- Menyusut agar pas
-            pos_hint: {'center_x': 0.5} # <- Menengahkan layout
-            spacing: dp(15)           # <- Jarak antar tombol
-            padding: dp(15), 0        # <- Padding atas
+            adaptive_width: True
+            pos_hint: {'center_x': 0.5}
+            spacing: dp(15)
+            padding: dp(15), 0
             
             MDFillRoundFlatButton:
                 id: save_button_result
                 text: 'Unduh Semua'
                 on_release: app.root.main_screen.save_result() 
                 disabled: True
-                # Ukuran sekarang adaptif (tidak terlalu besar)
 
             MDFillRoundFlatButton:
                 text: "Konversi Lagi"
                 on_release: app.root.go_to_main_screen()
                 md_bg_color: app.theme_cls.accent_color
-                # Ukuran sekarang adaptif (tidak terlalu besar)
-        # --- AKHIR PERUBAHAN TATA LETAK ---
 
 
 # --- SCREEN MANAGER (ROOT WIDGET) ---
@@ -841,22 +849,25 @@ KV = """
 """
 Builder.load_string(KV)
 
-# --- Class KivyMD yang Dimodifikasi ---
+# --- Definisi Kelas Widget Kustom ---
+
 class DownloadButtonCell(MDBoxLayout):
+    """Widget kustom untuk sel di grid yang berisi tombol unduh."""
     file_index = NumericProperty(-1)
 
-# --- PERUBAHAN DI SINI: MENAMBAHKAN CLASS BARU ---
 class ResultSuccessCell(MDBoxLayout):
+    """Widget kustom untuk sel di grid hasil yang berisi tombol unduh."""
     file_index = NumericProperty(-1)
-# --- AKHIR PERUBAHAN ---
 
 
-# --- Class Layar Baru ---
+# --- Definisi Layar ---
+
 class ResultScreen(MDScreen):
+    """Definisi kelas untuk layar yang menampilkan hasil (kosong, hanya mengandalkan KV)."""
     pass
 
 class RootScreenManager(MDScreenManager):
-    """Root widget yang mengelola semua layar."""
+    """Pengelola layar utama, mengatur transisi antara 'main' dan 'result'."""
     main_screen = ObjectProperty(None)
     result_screen = ObjectProperty(None)
 
@@ -875,10 +886,12 @@ class RootScreenManager(MDScreenManager):
         self.current = 'result'
 
 
-# --- Logika Utama Aplikasi (Sekarang MainScreen) ---
+# --- Logika Aplikasi Utama (Layar Utama) ---
+
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # Inisialisasi variabel state aplikasi
         self.extracted_tables = {}
         self.sheet_names = {}
         self.output_data = {}
@@ -886,24 +899,25 @@ class MainScreen(MDScreen):
         self.current_processing_index = -1
         self.is_processing = False
         
+        # Ikat fungsi on_file_drop ke window untuk fungsionalitas drag-and-drop
         self._dropped_files = []
         self._drop_event = None
         Window.bind(on_dropfile=self.on_file_drop)
         
+        # Format output default (None berarti harus dipilih dulu)
         self.selected_format = None
         Clock.schedule_once(self.create_format_menu, 0)
         
-        # --- PERUBAHAN ---
+        # Atur batas maksimal file
         self.max_files = 5
         self.dialog = None # Untuk "SweetAlert"
-        # --- AKHIR PERUBAHAN ---
 
-    # --- PERUBAHAN: Fungsi baru untuk SweetAlert ---
     def show_alert(self, title, text):
-        """Menampilkan dialog peringatan (SweetAlert)"""
+        """Menampilkan dialog peringatan (mirip SweetAlert) dengan pesan kustom."""
         if self.dialog:
             self.dialog.dismiss()
         
+        # Buat dialog HANYA dengan properti __init__ yang valid
         self.dialog = MDDialog(
             title=title,
             text=text,
@@ -914,11 +928,25 @@ class MainScreen(MDScreen):
                 )
             ]
         )
-        self.dialog.open()
-    # --- AKHIR PERUBAHAN ---
+        
+        # Atur properti alignment SETELAH objek dibuat (untuk KivyMD v1.x)
+        try:
+            self.dialog.title_halign = "center"
+            self.dialog.text_halign = "center"
+            self.dialog.buttons_halign = "center"
+        except Exception as e:
+            # Fallback untuk KivyMD v0.104.x
+            print(f"Gagal mengatur halign (mungkin KivyMD v0.104): {e}")
+            try:
+                self.dialog.title_align = "center"
+                self.dialog.text_align = "center"
+            except Exception as e2:
+                print(f"Gagal mengatur align: {e2}")
 
-    # --- (Fungsi tidak berubah: create_format_menu, set_format, _clear_results, get_file_size_str) ---
+        self.dialog.open()
+
     def create_format_menu(self, dt):
+        """Membangun item menu dropdown untuk pilihan format (XLSX, CSV, ODS)."""
         menu_items = [
             {
                 "text": "XLSX",
@@ -946,12 +974,14 @@ class MainScreen(MDScreen):
         )
 
     def set_format(self, text_item):
+        """Dipanggil saat format dipilih. Menyimpan pilihan & mengaktifkan tombol konversi."""
         self.ids.format_spinner_button.text = text_item
         self.selected_format = text_item
         self.format_menu.dismiss()
-        self.ids.convert_button.disabled = False
+        self.ids.convert_button.disabled = False # Aktifkan tombol konversi
 
     def _clear_results(self):
+        """Membersihkan data hasil konversi sebelumnya dari memori."""
         self.extracted_tables.clear()
         self.sheet_names.clear()
         self.output_data.clear()
@@ -963,6 +993,7 @@ class MainScreen(MDScreen):
         print("Hasil ekstraksi sebelumnya telah dibersihkan.")
 
     def get_file_size_str(self, file_path):
+        """Mengubah ukuran file (bytes) menjadi string yang mudah dibaca (KB, MB)."""
         try:
             size_bytes = os.path.getsize(file_path)
             if size_bytes < 1024: return f"{size_bytes} B"
@@ -973,7 +1004,7 @@ class MainScreen(MDScreen):
 
     @mainthread
     def reset_ui_state(self):
-        """Fungsi ini dipanggil oleh ScreenManager saat kembali ke main."""
+        """Mereset UI ke kondisi awal saat kembali ke layar utama."""
         self.ids.status_label.text = f"Silakan pilih file (maks {self.max_files}) dan klik Konversi."
         self.ids.file_list_grid.clear_widgets()
         self.file_list = []
@@ -984,11 +1015,10 @@ class MainScreen(MDScreen):
         
         self.ids.select_button.disabled = False
         
-        # --- PERUBAHAN DI SINI ---
-        self.ids.convert_button.disabled = True  # Nonaktifkan lagi
-        self.ids.format_spinner_button.text = "Pilih Format" # Reset teks
-        self.selected_format = None # Hapus format yang dipilih
-        # --- AKHIR PERUBAHAN ---
+        # Reset tombol format dan konversi
+        self.ids.convert_button.disabled = True
+        self.ids.format_spinner_button.text = "Pilih Format"
+        self.selected_format = None
         
         self.ids.file_list_container.opacity = 0
         self.ids.file_list_container.size_hint_y = None
@@ -998,8 +1028,8 @@ class MainScreen(MDScreen):
         self.current_processing_index = -1
         self._clear_results()
 
-    # --- PERUBAHAN: Modifikasi Logika Pilih File ---
     def select_file(self):
+        """Membuka dialog pilih file, tetapi hanya jika batas file belum tercapai."""
         if self.is_processing: return
 
         # Cek apakah sudah penuh SEBELUM membuka dialog
@@ -1007,9 +1037,7 @@ class MainScreen(MDScreen):
             self.show_alert("Batas File Tercapai", f"Anda sudah memilih {self.max_files} file. Batas maksimal adalah {self.max_files} file.")
             return
 
-        # HAPUS _clear_results(), clear_widgets(), dan file_list = []
-        # agar file yang ada tetap ada.
-        
+        # Logika "tambah file", bukan "ganti file"
         filechooser.open_file(
             on_selection=self.handle_selection,
             filters=[("PDF dan Gambar", "*.pdf", "*.jpeg", "*.png")],
@@ -1017,9 +1045,9 @@ class MainScreen(MDScreen):
         )
 
     def handle_selection(self, selection):
-        """Logika baru untuk MENAMBAH file ke daftar, bukan mengganti."""
+        """Logika utama untuk menangani file yang dipilih. Mencegah duplikat dan melebihi batas."""
         if not selection:
-            return # Tidak melakukan apa-apa jika tidak ada yang dipilih
+            return
 
         current_file_count = len(self.file_list)
         allowed_new_count = self.max_files - current_file_count
@@ -1033,10 +1061,9 @@ class MainScreen(MDScreen):
         new_unique_selection = [p for p in selection if p not in existing_paths]
         
         files_to_add = new_unique_selection[:allowed_new_count]
-        files_rejected_count = len(selection) - len(files_to_add) # Dihitung dari selection asli
+        files_rejected_count = len(selection) - len(files_to_add)
 
         if files_rejected_count > 0:
-            # Ini adalah "sweetalert"
             self.show_alert(
                 "Batas File Terlampaui",
                 f"Anda memilih {len(selection)} file.\n"
@@ -1046,35 +1073,21 @@ class MainScreen(MDScreen):
             )
         
         if files_to_add:
-            # Panggil fungsi baru _append_files_to_ui
+            # Panggil fungsi untuk memperbarui UI (dijalankan di mainthread)
             self._append_files_to_ui(files_to_add) 
-            
-            # --- PERBAIKAN: HAPUS PEMBARUAN LABEL DARI SINI ---
-            # total_files = len(self.file_list) # <- INI SALAH (MASIH 0)
-            # self.ids.status_label.text = f"{total_files} file siap dikonversi."
-            # --- AKHIR PERBAIKAN ---
-
         elif not new_unique_selection and len(selection) > 0:
              self.show_alert("File Duplikat", "Semua file yang Anda pilih sudah ada dalam daftar.")
         else:
-             # Tidak ada file baru yang valid
              pass
              
     def on_file_drop(self, window, file_path_bytes):
+        """Handler event saat file di-drag ke jendela aplikasi."""
         if self.is_processing:
             return
         
-        # Cek batas sebelum menambahkan ke daftar drop
         if len(self.file_list) + len(self._dropped_files) >= self.max_files:
-            if not self._drop_event: # Tampilkan sekali saja per drop-batch
+            if not self._drop_event:
                  self.show_alert("Batas File Tercapai", f"Batas maksimal {self.max_files} file akan tercapai. Beberapa file yang di-drop mungkin ditolak.")
-            # Jangan return, biarkan process_dropped_files menanganinya
-
-        # HAPUS _clear_results(), clear_widgets(), dan file_list = []
-        # if not self._dropped_files:
-        #     self._clear_results()
-        #     self.ids.file_list_grid.clear_widgets()
-        #     self.file_list = []
 
         try:
             file_path_str = file_path_bytes.decode('utf-8')
@@ -1094,10 +1107,11 @@ class MainScreen(MDScreen):
 
         if self._drop_event:
             self._drop_event.cancel()
+        # Tunda pemrosesan sedikit untuk menangani multiple drop
         self._drop_event = Clock.schedule_once(self.process_dropped_files, 0.2)
-    # --- AKHIR PERUBAHAN ---
 
     def process_dropped_files(self, dt):
+        """Meneruskan file yang di-drop ke logika 'handle_selection'."""
         if not self._dropped_files:
             return
         files_to_process = list(self._dropped_files)
@@ -1106,21 +1120,15 @@ class MainScreen(MDScreen):
         if files_to_process:
             self.handle_selection(files_to_process)
             
-    # --- PERUBAHAN: Ganti nama _update_ui_after_selection menjadi _append_files_to_ui ---
     @mainthread
     def _append_files_to_ui(self, new_paths):
-        # HAPUS: self.ids.file_list_grid.clear_widgets()
-        # HAPUS: self.file_list = []
-
+        """Menambahkan file baru (path) ke 'self.file_list' dan memperbarui UI grid."""
         if not new_paths: 
-            # Dulu ini untuk menyembunyikan, sekarang tidak perlu
             return
         
-        # Indeks baru dimulai dari jumlah file yang sudah ada
         start_index = len(self.file_list)
 
         for i, path in enumerate(new_paths):
-            # 'index' harus cocok dengan posisinya di self.file_list
             current_index = start_index + i
             
             try:
@@ -1140,7 +1148,7 @@ class MainScreen(MDScreen):
                 self.ids.file_list_grid.add_widget(progress_widget)
 
                 self.file_list.append({
-                    'index': current_index, # <-- Gunakan index yang benar
+                    'index': current_index, # Indeks unik untuk file ini
                     'path': path,
                     'name': file_name,
                     'original_name': os.path.splitext(file_name)[0],
@@ -1155,6 +1163,7 @@ class MainScreen(MDScreen):
 
             except Exception as e:
                 print(f"Gagal menambahkan file {path} ke daftar: {e}")
+                # Tambahkan baris error ke grid
                 error_label = Factory.GridCellLabel(text=f"Error: {os.path.basename(path)}", size_hint_x=0.6, theme_text_color="Error")
                 na_label = Factory.GridCellLabelRight(text="N/A", size_hint_x=0.15)
                 fail_label = Factory.ProgressTextCell(text="Gagal Muat", size_hint_x=0.25, theme_text_color="Error")
@@ -1163,20 +1172,17 @@ class MainScreen(MDScreen):
                 self.ids.file_list_grid.add_widget(fail_label)
 
         if self.file_list:
-            # Pastikan kontainer terlihat jika ini adalah file pertama
+            # Tampilkan kontainer daftar file
             self.ids.file_list_container.opacity = 1
             self.ids.file_list_container.size_hint_y = 1
             
-        # --- PERBAIKAN: PINDAHKAN PEMBARUAN LABEL KE SINI ---
-        # Sekarang self.file_list sudah berisi file baru
+        # Perbarui label status dengan jumlah file total
         total_files = len(self.file_list)
         if total_files > 0:
             self.ids.status_label.text = f"{total_files} file siap dikonversi."
-    # --- AKHIR PERUBAHAN ---
 
-
-    # --- (Fungsi tidak berubah: start_conversion, reset_progress_widget) ---
     def start_conversion(self):
+        """Memulai proses konversi. Mengunci UI dan memulai pemrosesan file pertama."""
         if self.is_processing:
             self.ids.status_label.text = "Proses konversi sedang berjalan."
             return
@@ -1184,40 +1190,34 @@ class MainScreen(MDScreen):
             self.ids.status_label.text = "Error: Tidak ada file yang dipilih!"
             return
 
+        # Jika semua file sudah diproses, reset statusnya untuk konversi ulang
         if not any(f['status'] == 'pending' for f in self.file_list):
-            self.ids.status_label.text = "Semua file sudah diproses atau gagal dimuat."
-            # --- PERUBAHAN: Izinkan konversi ulang jika diinginkan ---
-            # Reset status 'pending' untuk semua file
+            self.ids.status_label.text = "Menyiapkan konversi ulang..."
             for i, f_info in enumerate(self.file_list):
                  if f_info['status'] != 'pending':
                      self.reset_progress_widget(i)
-            self.ids.status_label.text = "Menyiapkan konversi ulang..."
-            # --- AKHIR PERUBAHAN ---
-            # return # Hapus return agar bisa lanjut
 
         selected_format = self.selected_format
         if selected_format not in ['XLSX', 'CSV', 'ODS']:
             self.ids.status_label.text = "Error: Silakan pilih format output terlebih dahulu!"
             return
 
-        self._clear_results()
+        self._clear_results() # Bersihkan hasil sebelumnya
         self.is_processing = True
         
+        # Sembunyikan tombol dan kunci UI
         self.ids.button_toolbar.opacity = 0
         self.ids.button_toolbar.size_hint_y = None
         self.ids.button_toolbar.height = 0
-        
         self.ids.select_button.disabled = True
-        self.ids.convert_button.disabled = True
         
         self.ids.status_label.text = "Memulai konversi..."
 
         first_pending_index = -1
         for i, f_info in enumerate(self.file_list):
-             # --- PERUBAHAN: Pastikan semua widget direset jika statusnya bukan 'pending' ---
+             # Pastikan semua widget direset jika statusnya bukan 'pending'
              if f_info['status'] != 'pending':
                  self.reset_progress_widget(i)
-             # --- AKHIR PERUBAHAN ---
              if f_info['status'] == 'pending':
                  if first_pending_index == -1:
                      first_pending_index = i
@@ -1226,40 +1226,38 @@ class MainScreen(MDScreen):
             self.current_processing_index = first_pending_index
             self._process_next_file()
         else:
+             # Tidak ada file yang valid untuk diproses
              self.is_processing = False
              self.ids.button_toolbar.opacity = 1
              self.ids.button_toolbar.size_hint_y = None
              self.ids.button_toolbar.height = dp(48)
              self.ids.select_button.disabled = False
-             self.ids.convert_button.disabled = False
-             self.ids.status_label.text = "Tidak ada file yang perlu diproses." # Kasus jika daftar kosong
+             self.ids.status_label.text = "Tidak ada file yang perlu diproses."
 
     @mainthread
     def reset_progress_widget(self, file_index):
+        """Mereset status visual widget di grid ke 'Menunggu'."""
         if 0 <= file_index < len(self.file_list):
             file_info = self.file_list[file_index]
             grid = self.ids.file_list_grid
 
             current_widget = file_info.get('progress_widget')
             
-            # --- PERUBAHAN: Penanganan fallback jika widget tidak ditemukan ---
+            # Fallback jika referensi widget hilang (jarang terjadi)
             if not current_widget or current_widget not in grid.children: 
                 print(f"Fallback: Mencari widget progress untuk index {file_index}")
                 try:
-                    # Menghitung indeks di grid.children (yang terbalik)
-                    # (Total children) - (index * 3) - 1 (untuk widget terakhir di baris)
                     widget_list_index = (len(grid.children) - 1) - (file_index * 3)
                     current_widget = grid.children[widget_list_index]
-                    print(f"Widget ditemukan di fallback index {widget_list_index}")
                 except IndexError as e:
                     print(f"Error: Fallback gagal. Tidak dapat reset widget untuk index {file_index}: {e}")
-                    file_info['status'] = 'pending' # Set status saja
+                    file_info['status'] = 'pending'
                     return
-            # --- AKHIR PERUBAHAN ---
 
             widget_index = grid.children.index(current_widget)
             grid.remove_widget(current_widget)
 
+            # Buat widget label "Menunggu" yang baru
             new_widget = Factory.ProgressTextCell(
                 text="Menunggu",
                 size_hint_x=0.25
@@ -1268,20 +1266,23 @@ class MainScreen(MDScreen):
             
             grid.add_widget(new_widget, index=widget_index)
 
+            # Simpan referensi widget baru
             file_info['progress_widget'] = new_widget
             file_info['progress_container'] = new_widget
             file_info['status'] = 'pending'
 
 
     def _process_next_file(self):
+        """Fungsi rekursif/loop: menemukan file 'pending' berikutnya dan memulainya di thread baru. Jika selesai, pindah ke layar hasil."""
         next_index_to_process = -1
+        # Cari file berikutnya yang masih 'pending'
         for i in range(self.current_processing_index, len(self.file_list)):
              if self.file_list[i]['status'] == 'pending':
                  next_index_to_process = i
                  break
 
         if next_index_to_process != -1:
-            # ... (logika proses file seperti biasa) ...
+            # File ditemukan, proses file ini
             self.current_processing_index = next_index_to_process
             file_info = self.file_list[self.current_processing_index]
             file_info['status'] = 'processing'
@@ -1292,17 +1293,16 @@ class MainScreen(MDScreen):
                  progress_widget.text = "Memproses..."
                  progress_widget.theme_text_color = "Primary"
 
+            # Mulai thread baru untuk pemrosesan
             thread = threading.Thread(
                 target=self._run_single_conversion_thread,
-                # --- PERUBAHAN: Pastikan mengirim 'index' yang benar dari dict ---
-                args=(file_info['path'], file_info['index'])
-                # --- AKHIR PERUBAHAN ---
+                args=(file_info['path'], file_info['index']) # Kirim index unik
             )
             thread.daemon = True
             thread.start()
         
         else: 
-            # --- SEMUA FILE SELESAI DIPROSES ---
+            # Tidak ada file 'pending' lagi, proses selesai
             self.is_processing = False
             self.current_processing_index = -1
             
@@ -1310,6 +1310,7 @@ class MainScreen(MDScreen):
             result_screen = self.manager.result_screen
             
             if result_screen:
+                # Bangun UI di layar hasil
                 result_grid = result_screen.ids.result_file_list_grid
                 result_grid.clear_widgets() 
                 
@@ -1324,19 +1325,15 @@ class MainScreen(MDScreen):
                     ))
                     
                     if f_info['status'] == 'success':
-                        # Ini sekarang memanggil kelas Python 'ResultSuccessCell'
-                        # yang sudah didefinisikan, sehingga 'file_index' valid.
                         result_grid.add_widget(Factory.ResultSuccessCell(
-                            # --- PERUBAHAN: Gunakan 'index' dari dict ---
-                            file_index=f_info['index'], 
-                            # --- AKHIR PERUBAHAN ---
+                            file_index=f_info['index'], # Kirim index unik
                             size_hint_x=0.25
                         ))
                     elif f_info['status'] == 'failed':
                         result_grid.add_widget(Factory.ResultFailedCell(
                             size_hint_x=0.25
                         ))
-                    else: # 'no_tables' atau status lain
+                    else: # 'no_tables'
                         result_grid.add_widget(Factory.ResultNoTablesCell(
                             size_hint_x=0.25
                         ))
@@ -1354,19 +1351,16 @@ class MainScreen(MDScreen):
                     result_screen.ids.result_status_label.text = "Proses selesai, namun tidak ada tabel yang berhasil diekspor."
 
             self.ids.status_label.text = "Semua file selesai diproses."
-            self.manager.go_to_result_screen()
+            self.manager.go_to_result_screen() # Pindah ke layar hasil
 
-
-    # --- (Fungsi tidak berubah: _update_progress_label, _run_single_conversion_thread) ---
     @mainthread
     def _update_progress_label(self, file_index, current_page, total_pages, error=False, message=""):
-         # --- PERUBAHAN: file_index adalah 'index' dari dict, bukan posisi list ---
+         """Callback untuk thread (khususnya PDF) untuk memperbarui label progres di main thread."""
          if not (0 <= file_index < len(self.file_list)):
              print(f"Peringatan: Index {file_index} di luar jangkauan untuk update progress.")
              return
          
          file_info = self.file_list[file_index]
-         # --- AKHIR PERUBAHAN ---
          if file_info['status'] != 'processing': return
 
          progress_widget = file_info['progress_widget']
@@ -1384,6 +1378,7 @@ class MainScreen(MDScreen):
 
 
     def _run_single_conversion_thread(self, file_path, file_index):
+        """Fungsi yang berjalan di thread terpisah. Memanggil process_pdf atau process_image."""
         tables = None
         sheet_names = None
         error_occurred = False
@@ -1392,9 +1387,11 @@ class MainScreen(MDScreen):
         try:
             file_extension = file_path.split('.')[-1].lower()
             if file_extension == 'pdf':
+                # Sediakan callback untuk update progres
                 progress_callback = lambda current, total, error=False, message="": self._update_progress_label(file_index, current, total, error, message)
                 tables, sheet_names = process_pdf(file_path, progress_callback)
             else:
+                 # File gambar tidak memiliki progres multi-halaman
                  self._update_progress_label(file_index, 0, 1)
                  tables = process_image(file_path)
                  sheet_names = [f"Hal_1_Tabel_{i+1}" for i in range(len(tables or []))]
@@ -1405,26 +1402,25 @@ class MainScreen(MDScreen):
             print(f"Gagal memproses file index {file_index}: {e}")
             self._update_progress_label(file_index, 0, 1, error=True, message="Gagal Konversi")
 
+        # Kirim hasil kembali ke main thread
         Clock.schedule_once(lambda dt: self.on_single_conversion_result(file_index, tables, sheet_names, error_object))
 
-    # --- (Fungsi tidak berubah: on_single_conversion_result) ---
     @mainthread
     def on_single_conversion_result(self, file_index, tables, sheet_names, error):
-        # --- PERUBAHAN: file_index adalah 'index' dari dict ---
+        """Callback setelah thread selesai. Memperbarui UI grid dengan status (Sukses, Gagal, Tak Ada Tabel)."""
         if not (0 <= file_index < len(self.file_list)): 
             print(f"Error: Index hasil {file_index} di luar jangkauan.")
             return
 
         file_info = self.file_list[file_index]
-        # --- AKHIR PERUBAHAN ---
         
         grid = self.ids.file_list_grid 
 
         current_widget = file_info.get('progress_widget')
+        # Fallback jika referensi widget hilang
         if not current_widget or current_widget not in grid.children:
              print(f"Error: Tidak dapat menemukan widget progress untuk index {file_index}.")
              try:
-                 # Fallback menggunakan perhitungan indeks (rumit tapi harusnya berfungsi)
                  widget_list_index = (len(grid.children) - 1) - (file_index * 3)
                  current_widget = grid.children[widget_list_index]
                  if not (isinstance(current_widget, MDLabel) or isinstance(current_widget, MDBoxLayout)): 
@@ -1435,7 +1431,7 @@ class MainScreen(MDScreen):
              if not current_widget:
                  print(f"Error: Fallback gagal. Tidak dapat update UI hasil untuk index {file_index}.")
                  self.current_processing_index = file_index + 1
-                 self._process_next_file()
+                 self._process_next_file() # Lanjutkan ke file berikutnya
                  return
 
         widget_index = grid.children.index(current_widget)
@@ -1447,10 +1443,12 @@ class MainScreen(MDScreen):
              file_info['status'] = 'failed'
              new_widget = Factory.FailedStatusCell(size_hint_x=0.25)
         elif tables:
+            # Sukses, ada tabel ditemukan
             file_info['tables'] = tables
             file_info['sheet_names'] = sheet_names
             selected_format = self.selected_format.lower()
             try:
+                # Buat file output di memori
                 output_bytes, _, file_ext = create_tables_export(tables, selected_format, sheet_names)
                 if output_bytes:
                      file_info['output_data'] = output_bytes
@@ -1464,35 +1462,31 @@ class MainScreen(MDScreen):
                  file_info['output_data'] = None
 
             if file_info['status'] == 'success':
-                 # Ini memanggil kelas Python 'DownloadButtonCell' yang sudah
-                 # didefinisikan, jadi ini tidak akan error.
-                 # --- PERUBAHAN: Gunakan 'index' dari dict ---
+                 # Tampilkan tombol Unduh
                  new_widget = Factory.DownloadButtonCell(file_index=file_info['index'], size_hint_x=0.25)
-                 # --- AKHIR PERUBAHAN ---
             else:
                  new_widget = Factory.FailedStatusCell(size_hint_x=0.25)
         else:
+            # Sukses, tapi tidak ada tabel ditemukan
             file_info['status'] = 'no_tables'
             new_widget = Factory.NoTablesStatusCell(size_hint_x=0.25)
 
         if new_widget:
+            # Tambahkan widget status baru ke grid
             grid.add_widget(new_widget, index=widget_index)
             file_info['progress_widget'] = new_widget
 
-        # --- PERUBAHAN: Set processing index ke posisi list, bukan index file ---
+        # Lanjutkan ke file berikutnya
         self.current_processing_index = file_index + 1
-        # --- AKHIR PERUBAHAN ---
         self._process_next_file() 
 
-    # --- (Fungsi tidak berubah: download_single_file, save_result, write_saved_file) ---
     def download_single_file(self, file_index):
-        # --- PERUBAHAN: file_index adalah 'index' dari dict ---
+        """Menangani logika untuk mengunduh satu file hasil."""
         if not (0 <= file_index < len(self.file_list)):
             self.ids.status_label.text = "Error: Index file tidak valid."
             return
 
         file_info = self.file_list[file_index]
-        # --- AKHIR PERUBAHAN ---
 
         if file_info['status'] != 'success' or not file_info['output_data']:
             self.ids.status_label.text = f"Error: File '{file_info['name']}' belum selesai atau gagal."
@@ -1502,6 +1496,7 @@ class MainScreen(MDScreen):
         output_data = file_info['output_data']
         file_ext = file_info.get('file_ext', selected_format)
 
+        # Jika CSV dan ada banyak tabel, zip otomatis
         if selected_format == 'csv' and file_info['tables'] and len(file_info['tables']) > 1:
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -1514,6 +1509,7 @@ class MainScreen(MDScreen):
         timestamp = datetime.now().strftime("%d %b %Y, %H-%M")
         default_filename = f"{file_info['original_name']}_{timestamp}.{file_ext}"
 
+        # Buka dialog simpan file
         filechooser.save_file(
             on_selection=lambda path: self.write_saved_file(path, output_data, expected_ext=file_ext, is_single_download=True),
             path=default_filename,
@@ -1521,7 +1517,7 @@ class MainScreen(MDScreen):
         )
 
     def save_result(self):
-        """Dipanggil dari tombol 'Unduh Semua' di ResultScreen."""
+        """Menangani logika 'Unduh Semua', menggabungkan file sukses ke ZIP jika perlu."""
         successful_files = [f for f in self.file_list if f['status'] == 'success' and f.get('output_data')]
         result_screen = self.manager.result_screen
 
@@ -1536,17 +1532,20 @@ class MainScreen(MDScreen):
         base_filename = "hasil_konversi"
 
         if len(successful_files) > 1:
+            # Jika lebih dari 1 file sukses, buat ZIP
             final_file_ext = 'zip'
             base_filename = "hasil_konversi_batch"
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
                 for file_info in successful_files:
                     try:
+                        # Regenerasi data untuk format yang benar (jika format diubah setelah konversi)
                         output_data_single, _, file_ext_single = create_tables_export(
                             file_info['tables'], selected_format, file_info['sheet_names']
                         )
                         timestamp_individual = datetime.now().strftime("%H-%M-%S")
                         if selected_format == 'csv' and file_info['tables'] and len(file_info['tables']) > 1:
+                            # Jika CSV multi-tabel, pecah di dalam zip
                             for i, df in enumerate(file_info['tables']):
                                 sheet_name = file_info['sheet_names'][i].replace(" ", "_") if file_info['sheet_names'] and i < len(file_info['sheet_names']) else f"Tabel_{i+1}"
                                 filename_in_zip = f"{file_info['original_name']}_{timestamp_individual}_{sheet_name}.csv"
@@ -1559,7 +1558,8 @@ class MainScreen(MDScreen):
                          continue
             final_output_data = zip_buffer.getvalue()
 
-        else: # Hanya satu file sukses
+        else: 
+            # Hanya satu file sukses
             file_info = successful_files[0]
             try:
                 final_output_data, _, final_file_ext = create_tables_export(
@@ -1572,6 +1572,7 @@ class MainScreen(MDScreen):
                  return
 
             if selected_format == 'csv' and file_info['tables'] and len(file_info['tables']) > 1:
+                 # Zip otomatis jika CSV multi-tabel
                  zip_buffer = io.BytesIO()
                  try:
                      with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -1605,6 +1606,7 @@ class MainScreen(MDScreen):
         )
 
     def write_saved_file(self, path, data, expected_ext, is_single_download=False):
+        """Menulis data bytes ke file di disk yang dipilih pengguna."""
         if not path:
             return
         
@@ -1612,6 +1614,7 @@ class MainScreen(MDScreen):
         
         try:
             save_path = path[0] if isinstance(path, list) else path
+            # Pastikan ekstensi file benar
             base, ext = os.path.splitext(save_path)
             clean_expected_ext = expected_ext.lstrip('.')
             if not ext or ext.lower().replace('.', '') != clean_expected_ext:
@@ -1622,11 +1625,11 @@ class MainScreen(MDScreen):
             
             status_msg = f"File berhasil disimpan: {os.path.basename(save_path)}"
             
+            # Tampilkan pesan sukses di layar yang aktif
             if self.manager.current == 'main':
                 self.ids.status_label.text = status_msg
             elif result_screen:
                 result_screen.ids.result_status_label.text = status_msg
-
 
         except Exception as e:
             status_msg = f"Gagal menyimpan file: {e}"
@@ -1637,13 +1640,19 @@ class MainScreen(MDScreen):
             import traceback
             traceback.print_exc()
 
+# --- Kelas Aplikasi Utama ---
+
 class PDFConverterApp(MDApp):
     def build(self):
+        """Metode build utama aplikasi Kivy. Mengatur judul jendela dan tema."""
+        self.title = "PDFExtract" # Atur nama judul jendela
         self.theme_cls.primary_palette = "Blue"
         self.theme_cls.accent_palette = "Green"
         self.theme_cls.theme_style = "Light"
         
         return RootScreenManager()
+
+# --- Entry Point Aplikasi ---
 
 if __name__ == '__main__':
     PDFConverterApp().run()
