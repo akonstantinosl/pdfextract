@@ -70,19 +70,17 @@ jobs:
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\poppler_bin"
         Expand-Archive -Path "${{ env.POPPLER_ZIP }}" -DestinationPath "${{ env.STAGING_DIR }}\poppler_bin"
 
-    # 8. Salin file aplikasi ANDA DAN LOGO
+    # 8. Salin file aplikasi ANDA DAN LOGO (DENGAN ERROR CHECK)
     - name: Copy application files
       shell: cmd
       run: |
-        copy main.py ${{ env.STAGING_DIR }}\main.py
-        copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt
-        copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat
-        REM Buat folder assets/img di staging jika belum ada
-        if not exist ${{ env.STAGING_DIR }}\assets mkdir ${{ env.STAGING_DIR }}\assets
-        if not exist ${{ env.STAGING_DIR }}\assets\img mkdir ${{ env.STAGING_DIR }}\assets\img
-        REM Salin logo
-        copy assets\img\pdfextract.png ${{ env.STAGING_DIR }}\pdfextract.png
-        xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models
+        copy main.py ${{ env.STAGING_DIR }}\main.py || exit /b 1
+        copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt || exit /b 1
+        copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat || exit /b 1
+        echo Menyalin logo...
+        copy assets\img\pdfextract.png ${{ env.STAGING_DIR }}\pdfextract.png || (echo "ERROR: Gagal menyalin logo assets\img\pdfextract.png" && exit /b 1)
+        echo Logo tersalin.
+        xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models || exit /b 1
 
     # 9. Unduh semua 'wheels' (SOLUSI FINAL UNTUK ODFPY)
     - name: Download Python wheels
