@@ -530,14 +530,20 @@ KV = """
     padding_x: dp(5)
     shorten: True
     text_size: (self.width - dp(10), None) if self.width > dp(20) else (dp(10), None)
-    md_bg_color: app.theme_cls.bg_normal
+    size_hint_y: None
+    height: dp(40)
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
 
 <GridCellLabelRight@GridCellLabel>:
     halign: 'center'
     padding_x: 0
     shorten: False
     text_size: (self.width, None)
-    md_bg_color: app.theme_cls.bg_normal
 
 <DownloadButtonCell>:
     padding: dp(5)
@@ -1163,7 +1169,7 @@ class MainScreen(MDScreen):
         if self.ids.file_list_container.opacity == 0:
             self.ids.file_list_container.opacity = 1
             self.ids.file_list_container.size_hint_y = 1
-            self.ids.file_list_container.height = 0  # Biarkan size_hint_y mengatur tinggi
+            self.ids.file_list_container.height = 0
         
         start_index = len(self.file_list)
 
@@ -1174,13 +1180,22 @@ class MainScreen(MDScreen):
                 file_name = os.path.basename(path)
                 file_size = self.get_file_size_str(path)
 
-                label_name = GridCellLabel(text=file_name, size_hint_x=0.6)
-                label_size = GridCellLabelRight(text=file_size, size_hint_x=0.15)
+                # Buat label dengan color eksplisit
+                label_name = GridCellLabel(
+                    text=file_name, 
+                    size_hint_x=0.6,
+                    color=(0, 0, 0, 1)  # Hitam eksplisit
+                )
+                label_size = GridCellLabelRight(
+                    text=file_size, 
+                    size_hint_x=0.15,
+                    color=(0, 0, 0, 1)  # Hitam eksplisit
+                )
                 progress_widget = ProgressTextCell(
                     text="Menunggu",
-                    size_hint_x=0.25
+                    size_hint_x=0.25,
+                    color=(0.5, 0.5, 0.5, 1)  # Abu-abu eksplisit
                 )
-                progress_widget.theme_text_color = "Hint"
 
                 self.ids.file_list_grid.add_widget(label_name)
                 self.ids.file_list_grid.add_widget(label_size)
@@ -1202,10 +1217,21 @@ class MainScreen(MDScreen):
 
             except Exception as e:
                 print(f"Gagal menambahkan file {path} ke daftar: {e}")
-                # Tambahkan baris error ke grid
-                error_label = GridCellLabel(text=f"Error: {os.path.basename(path)}", size_hint_x=0.6, theme_text_color="Error")
-                na_label = GridCellLabelRight(text="N/A", size_hint_x=0.15)
-                fail_label = ProgressTextCell(text="Gagal Muat", size_hint_x=0.25, theme_text_color="Error")
+                error_label = GridCellLabel(
+                    text=f"Error: {os.path.basename(path)}", 
+                    size_hint_x=0.6, 
+                    color=(0.8, 0.2, 0.2, 1)  # Merah
+                )
+                na_label = GridCellLabelRight(
+                    text="N/A", 
+                    size_hint_x=0.15,
+                    color=(0.5, 0.5, 0.5, 1)
+                )
+                fail_label = ProgressTextCell(
+                    text="Gagal Muat", 
+                    size_hint_x=0.25, 
+                    color=(0.8, 0.2, 0.2, 1)  # Merah
+                )
                 self.ids.file_list_grid.add_widget(error_label)
                 self.ids.file_list_grid.add_widget(na_label)
                 self.ids.file_list_grid.add_widget(fail_label)
@@ -1277,7 +1303,6 @@ class MainScreen(MDScreen):
 
             current_widget = file_info.get('progress_widget')
             
-            # Fallback jika referensi widget hilang
             if not current_widget or current_widget not in grid.children: 
                 print(f"Fallback: Mencari widget progress untuk index {file_index}")
                 try:
@@ -1291,20 +1316,18 @@ class MainScreen(MDScreen):
             widget_index = grid.children.index(current_widget)
             grid.remove_widget(current_widget)
 
-            # Buat widget label "Menunggu" yang baru
+            # Buat widget label "Menunggu" yang baru dengan color eksplisit
             new_widget = ProgressTextCell(
                 text="Menunggu",
-                size_hint_x=0.25
+                size_hint_x=0.25,
+                color=(0.5, 0.5, 0.5, 1)  # Abu-abu eksplisit
             )
-            new_widget.theme_text_color = "Hint"
             
             grid.add_widget(new_widget, index=widget_index)
 
-            # Simpan referensi widget baru
             file_info['progress_widget'] = new_widget
             file_info['progress_container'] = new_widget
             file_info['status'] = 'pending'
-
 
     def _process_next_file(self):
         """Fungsi rekursif/loop: menemukan file 'pending' berikutnya dan memulainya di thread baru. Jika selesai, pindah ke layar hasil."""
@@ -1389,26 +1412,26 @@ class MainScreen(MDScreen):
 
     @mainthread
     def _update_progress_label(self, file_index, current_page, total_pages, error=False, message=""):
-         """Callback untuk thread (khususnya PDF) untuk memperbarui label progres di main thread."""
-         if not (0 <= file_index < len(self.file_list)):
-             print(f"Peringatan: Index {file_index} di luar jangkauan untuk update progress.")
-             return
-         
-         file_info = self.file_list[file_index]
-         if file_info['status'] != 'processing': return
+        """Callback untuk thread (khususnya PDF) untuk memperbarui label progres di main thread."""
+        if not (0 <= file_index < len(self.file_list)):
+            print(f"Peringatan: Index {file_index} di luar jangkauan untuk update progress.")
+            return
+        
+        file_info = self.file_list[file_index]
+        if file_info['status'] != 'processing': return
 
-         progress_widget = file_info['progress_widget']
-         if progress_widget and isinstance(progress_widget, MDLabel):
-              if error:
-                   if message:
+        progress_widget = file_info['progress_widget']
+        if progress_widget and isinstance(progress_widget, MDLabel):
+            if error:
+                if message:
                         progress_widget.text = message
-                        progress_widget.theme_text_color = "Error"
-              elif file_info['path'].lower().endswith('.pdf'):
-                   progress_widget.text = f"Halaman {current_page}/{total_pages}"
-                   progress_widget.theme_text_color = "Primary"
-              else:
-                   progress_widget.text = "Memproses..."
-                   progress_widget.theme_text_color = "Primary"
+                        progress_widget.color = (0.8, 0.2, 0.2, 1)  # Merah eksplisit
+            elif file_info['path'].lower().endswith('.pdf'):
+                progress_widget.text = f"Halaman {current_page}/{total_pages}"
+                progress_widget.color = (0, 0, 0, 1)  # Hitam eksplisit
+            else:
+                progress_widget.text = "Memproses..."
+                progress_widget.color = (0, 0, 0, 1)  # Hitam eksplisit
 
 
     def _run_single_conversion_thread(self, file_path, file_index):
