@@ -27,16 +27,14 @@ WizardStyle=modern
 Name: "indonesian"; MessagesFile: "compiler:Languages\Indonesian.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-; --- (OPSIONAL) Pesan Kustom untuk Wizard ---
 [Messages]
-Indonesian.FinishedHeading=Instalasi Selesai
-Indonesian.FinishedLabel=Setup telah selesai menginstal {#MyAppName} di komputer Anda. Aplikasi dapat dijalankan dengan memilih shortcut yang terpasang.
-Indonesian.RunLabel=Luncurkan {#MyAppName} ; Teks untuk checkbox di halaman terakhir
+indonesian.FinishedHeading=Instalasi Selesai
+indonesian.FinishedLabel=Setup telah selesai menginstal {#MyAppName} di komputer Anda. Aplikasi dapat dijalankan dengan memilih shortcut yang terpasang.
+indonesian.RunLabel=Luncurkan {#MyAppName} ; Teks untuk checkbox di halaman terakhir
 
-English.FinishedHeading=Setup Complete
-English.FinishedLabel=Setup has finished installing {#MyAppName} on your computer. The application may be launched by selecting the installed shortcuts.
-English.RunLabel=Launch {#MyAppName} ; Text for the checkbox on the final page
-; --- Akhir Pesan Kustom ---
+english.FinishedHeading=Setup Complete
+english.FinishedLabel=Setup has finished installing {#MyAppName} on your computer. The application may be launched by selecting the installed shortcuts.
+english.RunLabel=Launch {#MyAppName} ; Text for the checkbox on the final page
 
 [Dirs]
 Name: "{app}\python"
