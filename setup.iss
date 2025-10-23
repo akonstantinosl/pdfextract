@@ -55,8 +55,6 @@ Source: "dist\install_libs.bat"; DestDir: "{app}"
 Source: "dist\pdfextract.ico"; DestDir: "{app}" ; <-- Salin logo ke folder instalasi
 
 [Run]
-; Filename: "{app}\vc_redist.x64.exe"; Parameters: ... (HAPUS BARIS INI)
-
 ; 1. Instal Pip (Sekarang jadi langkah pertama)
 Filename: "{app}\python\python.exe"; Parameters: """{app}\get-pip.py"""; WorkingDir: "{app}"; StatusMsg: "Memasang Pip..."
 
@@ -67,22 +65,19 @@ Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang li
 Filename: "{cmd}"; Parameters: "/C echo @echo off > ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo :: Menyiapkan Poppler PATH >> ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo set ""PATH=%~dp0\poppler\Library\bin;%%PATH%%"" >> ""{app}\StartApp.bat"""; Flags: runhidden
-; Baris untuk cek versi Python (opsional tapi bagus untuk debug)
 Filename: "{cmd}"; Parameters: "/C echo :: Cek versi Python untuk debug >> ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" --version >> ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo. >> ""{app}\StartApp.bat"""; Flags: runhidden
 Filename: "{cmd}"; Parameters: "/C echo :: Menjalankan aplikasi >> ""{app}\StartApp.bat"""; Flags: runhidden
-; Tetap python.exe untuk debug
 Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" ""%~dp0\main.py"" >> ""{app}\StartApp.bat"""; Flags: runhidden
-; Tetap pause untuk debug
 Filename: "{cmd}"; Parameters: "/C echo pause >> ""{app}\StartApp.bat"""; Flags: runhidden
+
 ; Opsi untuk menjalankan aplikasi setelah instalasi selesai
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Icons]
-; Shortcut di Start Menu
-; Menambahkan IconFilename
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\pdfextract.ico";
+; Shortcut di Start Menu dengan ikon kustom
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\pdfextract.ico"
 ; Shortcut Uninstaller (otomatis dapat ikon dari Setup section)
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 
