@@ -48,17 +48,6 @@ from scipy.signal import find_peaks
 from scipy.ndimage import gaussian_filter1d
 from datetime import datetime
 
-
-# --- Logika Penentuan Path ---
-# Dapatkan direktori tempat skrip dijalankan
-if getattr(sys, 'frozen', False):
-    # Jika dijalankan sebagai aplikasi yang di-bundle
-    application_path = os.path.dirname(sys.executable)
-else:
-    # Jika dijalankan sebagai skrip python biasa
-    application_path = os.path.dirname(os.path.abspath(__file__))
-
-
 # Tentukan path absolut ke model ONNX
 det_model_path = os.path.join(application_path, 'models', 'ch_PP-OCRv4_det_infer.onnx')
 cls_model_path = os.path.join(application_path, 'models', 'ch_ppocr_mobile_v2.0_cls_infer.onnx')
@@ -860,10 +849,7 @@ KV = """
         id: result_screen_id
         name: 'result'
 """
-Builder.load_string(KV)
-
 # --- Definisi Kelas Widget Kustom ---
-
 class DownloadButtonCell(MDBoxLayout):
     """Widget kustom untuk sel di grid yang berisi tombol unduh."""
     file_index = NumericProperty(-1)
@@ -909,8 +895,10 @@ class ResultFailedCell(MDBoxLayout):
 class ResultNoTablesCell(MDBoxLayout):
     """Sel kustom yang menampilkan status 'Tak Ada Tabel' di grid ResultScreen."""
     pass
-# --- Definisi Layar ---
 
+Builder.load_string(KV)
+
+# --- Definisi Layar ---
 class ResultScreen(MDScreen):
     """Definisi kelas untuk layar yang menampilkan hasil (kosong, hanya mengandalkan KV)."""
     pass

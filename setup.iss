@@ -15,12 +15,12 @@
 [Setup]
 ; Informasi dasar aplikasi
 AppName={#MyAppName}
+AppVerName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 
 ; Lokasi instalasi (di dalam Program Files)
 DefaultDirName={autopf}\{#MyAppName}
-DefaultGroupName={#MyAppName}
 
 ; Ikon untuk installer (diambil dari variabel GitHub Actions)
 SetupIconFile=dist\pdfextract.ico
@@ -79,25 +79,22 @@ Source: "dist\pdfextract.ico"; DestDir: "{app}"
 Filename: "{app}\python\python.exe"; Parameters: """{app}\get-pip.py"""; WorkingDir: "{app}"; StatusMsg: "Memasang Pip..."
 
 ; 2. Menjalankan batch script untuk menginstal semua library (offline dari folder 'wheels')
-Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang library Python (KivyMD, Pandas, dll.)... Ini mungkin perlu beberapa saat."
+Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang library Python... Ini mungkin perlu beberapa saat."
 
 ; 3. (Opsional) Menjalankan aplikasi setelah instalasi selesai jika user mencentang box
 Filename: "{app}\python\{#MyAppExeName}"; Parameters: """{app}\main.py"""; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Icons]
 ; Membuat shortcut di Start Menu
-; Target: pythonw.exe
-; Argumen: main.py
-; Mulai di: folder aplikasi
-; Ikon: logo aplikasi
 Name: "{group}\{#MyAppName}"; \
+  ; Target: pythonw.exe
   Filename: "{app}\python\{#MyAppExeName}"; \
+  ; Argumen: main.py
   Parameters: """{app}\main.py"""; \
+  ; Mulai di: folder aplikasi
   WorkingDir: "{app}"; \
+  ; Ikon: logo aplikasi
   IconFilename: "{app}\pdfextract.ico"
-
-; Membuat shortcut Uninstaller di Start Menu
-Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 
 ; Membuat shortcut Uninstaller di Start Menu
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
