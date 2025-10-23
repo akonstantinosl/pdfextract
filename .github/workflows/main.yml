@@ -78,11 +78,8 @@ jobs:
         copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt || exit /b 1
         copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat || exit /b 1
         echo Menyalin logo ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.ico ...
-        copy assets\img\pdfextract.ico ${{ env.STAGING_DIR }}\pdfextract.ico || (echo "ERROR: Gagal menyalin logo ke dist" && exit /b 1)
-        echo Logo tersalin ke dist.
-        echo Menyalin logo ke root (sementara untuk ISCC) ${{ github.workspace }}\pdfextract.ico ...
-        copy assets\img\pdfextract.ico .\pdfextract.ico || (echo "ERROR: Gagal menyalin logo ke root" && exit /b 1)
-        echo Logo tersalin ke root.
+        copy assets\img\pdfextract.ico ${{ env.STAGING_DIR }}\pdfextract.ico || (echo "ERROR: Gagal menyalin logo assets\img\pdfextract.ico" && exit /b 1)
+        echo Logo tersalin ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.ico.
         xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models || exit /b 1
 
     # 9. Unduh semua 'wheels' (SOLUSI FINAL UNTUK ODFPY)
@@ -153,24 +150,21 @@ jobs:
     - name: Compile Inno Setup installer
       shell: cmd
       run: |
-        REM Pindah ke direktori root repositori
+        REM Pindah ke direktori root repositori (opsional, tapi tidak berbahaya)
         cd ${{ github.workspace }}
-        echo Current directory after cd: %CD%
+        echo Current directory: %CD%
 
-        REM Verifikasi keberadaan file ikon di direktori root DAN dist
+        REM Definisikan path absolut ke ikon DI DALAM DIST
+        set SETUP_ICON_PATH=%CD%\${{ env.STAGING_DIR }}\pdfextract.ico
+        echo Setup Icon Path for define: "%SETUP_ICON_PATH%"
+
+        REM Verifikasi keberadaan file ikon di direktori dist
         echo Verifying icon file presence:
-        dir pdfextract.ico
-        dir ${{ env.STAGING_DIR }}\pdfextract.ico
+        dir "%SETUP_ICON_PATH%"
 
-        REM Mengirimkan nomor versi ke Inno Setup
-        iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}"
-
-    # 12.5 Hapus ikon sementara dari root
-    - name: Clean up temporary root icon
-      shell: cmd
-      run: |
-        echo Cleaning up temporary root icon...
-        del pdfextract.ico
+        REM Mengirimkan nomor versi DAN path ikon absolut ke Inno Setup
+        REM Kutip ganda di sekitar %SETUP_ICON_PATH% ditangani oleh cmd
+        iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}" /DSetupIconAbsPath="%SETUP_ICON_PATH%"
 
     # 13. Buat GitHub Release
     - name: Create GitHub Release
