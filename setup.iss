@@ -76,11 +76,13 @@ Filename: "{cmd}"; Parameters: "/C echo :: Menjalankan aplikasi >> ""{app}\Start
 Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" ""%~dp0\main.py"" >> ""{app}\StartApp.bat"""; Flags: runhidden
 ; Tetap pause untuk debug
 Filename: "{cmd}"; Parameters: "/C echo pause >> ""{app}\StartApp.bat"""; Flags: runhidden
+; Opsi untuk menjalankan aplikasi setelah instalasi selesai
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Icons]
 ; Shortcut di Start Menu
-; Menambahkan IconFilename dan Flags: run
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\pdfextract.ico"; Flags: run
+; Menambahkan IconFilename
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\pdfextract.ico";
 ; Shortcut Uninstaller (otomatis dapat ikon dari Setup section)
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 
