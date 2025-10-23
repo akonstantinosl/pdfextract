@@ -150,11 +150,15 @@ jobs:
     - name: Compile Inno Setup installer
       shell: cmd
       run: |
+        REM Pindah ke direktori root repositori
+        cd ${{ github.workspace }}
+        echo Current directory after cd: %CD%
+
         REM Verifikasi keberadaan file ikon di direktori dist
-        echo Verifying icon file presence in dist directory before compiling:
+        echo Verifying icon file presence relative to current directory:
         dir ${{ env.STAGING_DIR }}
 
-        REM Mengirimkan nomor versi ke Inno Setup (Hapus /DSetupIconAbsPath)
+        REM Mengirimkan nomor versi ke Inno Setup
         iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}"
 
     # 13. Buat GitHub Release
