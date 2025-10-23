@@ -86,15 +86,18 @@ Filename: "{app}\python\{#MyAppExeName}"; Parameters: """{app}\main.py"""; Worki
 
 [Icons]
 ; Membuat shortcut di Start Menu
+; Target: pythonw.exe
+; Argumen: main.py
+; Mulai di: folder aplikasi
+; Ikon: logo aplikasi
 Name: "{group}\{#MyAppName}"; \
-  ; Target: pythonw.exe
   Filename: "{app}\python\{#MyAppExeName}"; \
-  ; Argumen: main.py
   Parameters: """{app}\main.py"""; \
-  ; Mulai di: folder aplikasi
   WorkingDir: "{app}"; \
-  ; Ikon: logo aplikasi
   IconFilename: "{app}\pdfextract.ico"
+
+; Membuat shortcut Uninstaller di Start Menu
+Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 
 ; Membuat shortcut Uninstaller di Start Menu
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
