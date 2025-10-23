@@ -52,7 +52,8 @@ Source: "dist\main.py"; DestDir: "{app}"
 Source: "dist\get-pip.py"; DestDir: "{app}"
 Source: "dist\requirements.txt"; DestDir: "{app}"
 Source: "dist\install_libs.bat"; DestDir: "{app}"
-Source: "dist\pdfextract.ico"; DestDir: "{app}" ; <-- Salin logo ke folder instalasi
+; Salin logo ke folder instalasi
+Source: "dist\pdfextract.ico"; DestDir: "{app}"
 
 [Run]
 ; 1. Instal Pip (Sekarang jadi langkah pertama)
