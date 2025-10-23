@@ -4,6 +4,7 @@ import io
 import sys
 import gc
 import zipfile
+import subprocess
 
 # Dapatkan direktori poppler
 if getattr(sys, 'frozen', False):
@@ -16,6 +17,28 @@ else:
 # Tambahkan path Poppler (yang di-bundle) ke environment PATH
 poppler_path = os.path.join(application_path, 'poppler', 'Library', 'bin')
 os.environ['PATH'] = poppler_path + os.pathsep + os.environ.get('PATH', '')
+
+# Monkey patch subprocess.Popen untuk menyembunyikan console di Windows
+if sys.platform == 'win32':
+    _original_popen = subprocess.Popen
+    
+    def _silent_popen(*args, **kwargs):
+        """Wrapper untuk subprocess.Popen yang menyembunyikan console window"""
+        if 'startupinfo' not in kwargs:
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            kwargs['startupinfo'] = startupinfo
+        
+        # Tambahkan CREATE_NO_WINDOW flag
+        if 'creationflags' not in kwargs:
+            kwargs['creationflags'] = 0
+        kwargs['creationflags'] |= subprocess.CREATE_NO_WINDOW
+        
+        return _original_popen(*args, **kwargs)
+    
+    # Ganti subprocess.Popen dengan versi silent
+    subprocess.Popen = _silent_popen
 
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
@@ -455,7 +478,7 @@ def process_image_for_tables(img_array):
 
 
 def process_pdf(pdf_path, progress_callback=None):
-    """Mengkonversi setiap halaman PDF menjadi gambar, lalu memproses setiap gambar untuk tabel. Menggunakan callback untuk progres UI."""
+    """Mengkonversi setiap halaman PDF menjadi gambar, lalu memproses setiap gambar untuk tabel."""
     all_tables = []
     sheet_names = []
 
@@ -469,7 +492,6 @@ def process_pdf(pdf_path, progress_callback=None):
         if progress_callback:
             progress_callback(0, 1, error=True, message=f"Gagal Info")
         return [], []
-
 
     for i in range(1, total_pages + 1):
         if progress_callback:
@@ -585,14 +607,20 @@ KV = """
     padding_x: dp(5)
     shorten: True
     text_size: (self.width - dp(10), None) if self.width > dp(20) else (dp(10), None)
-    md_bg_color: app.theme_cls.bg_normal
+    size_hint_y: None
+    height: dp(40)
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
 
 <ResultCellLabelRight@ResultCellLabel>:
     halign: 'center'
     padding_x: 0
     shorten: False
     text_size: (self.width, None)
-    md_bg_color: app.theme_cls.bg_normal
 
 <ResultSuccessCell>:
     padding: dp(5)
@@ -1334,9 +1362,9 @@ class MainScreen(MDScreen):
         next_index_to_process = -1
         # Cari file berikutnya yang masih 'pending'
         for i in range(self.current_processing_index, len(self.file_list)):
-             if self.file_list[i]['status'] == 'pending':
-                 next_index_to_process = i
-                 break
+            if self.file_list[i]['status'] == 'pending':
+                next_index_to_process = i
+                break
 
         if next_index_to_process != -1:
             # File ditemukan, proses file ini
@@ -1347,13 +1375,13 @@ class MainScreen(MDScreen):
 
             progress_widget = file_info['progress_widget']
             if progress_widget and isinstance(progress_widget, MDLabel):
-                 progress_widget.text = "Memproses..."
-                 progress_widget.theme_text_color = "Primary"
+                progress_widget.text = "Memproses..."
+                progress_widget.color = (0, 0, 0, 1)  # Hitam eksplisit
 
             # Mulai thread baru untuk pemrosesan
             thread = threading.Thread(
                 target=self._run_single_conversion_thread,
-                args=(file_info['path'], file_info['index']) # Kirim index unik
+                args=(file_info['path'], file_info['index'])
             )
             thread.daemon = True
             thread.start()
@@ -1372,18 +1400,21 @@ class MainScreen(MDScreen):
                 result_grid.clear_widgets() 
                 
                 for f_info in self.file_list:
+                    # Tambahkan color eksplisit untuk setiap label
                     result_grid.add_widget(ResultCellLabel(
                         text=f_info['name'], 
-                        size_hint_x=0.6
+                        size_hint_x=0.6,
+                        color=(0, 0, 0, 1)  # Hitam eksplisit
                     ))
                     result_grid.add_widget(ResultCellLabelRight(
                         text=f_info['size'], 
-                        size_hint_x=0.15
+                        size_hint_x=0.15,
+                        color=(0, 0, 0, 1)  # Hitam eksplisit
                     ))
                     
                     if f_info['status'] == 'success':
                         result_grid.add_widget(ResultSuccessCell(
-                            file_index=f_info['index'], # Kirim index unik
+                            file_index=f_info['index'],
                             size_hint_x=0.25
                         ))
                     elif f_info['status'] == 'failed':

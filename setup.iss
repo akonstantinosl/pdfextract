@@ -69,7 +69,6 @@ Source: "dist\models\*"; DestDir: "{app}\models"; Flags: recursesubdirs createal
 Source: "dist\poppler_bin\{#MyPopplerDirName}\*"; DestDir: "{app}\poppler"; Flags: recursesubdirs createallsubdirs
 Source: "dist\wheels\*"; DestDir: "{app}\wheels"; Flags: recursesubdirs createallsubdirs
 Source: "dist\main.py"; DestDir: "{app}"
-Source: "dist\get-pip.py"; DestDir: "{app}"
 Source: "dist\requirements.txt"; DestDir: "{app}"
 Source: "dist\install_libs.bat"; DestDir: "{app}"
 Source: "dist\pdfextract.ico"; DestDir: "{app}"
@@ -77,13 +76,10 @@ Source: "dist\pdfextract.ico"; DestDir: "{app}"
 [Run]
 ; Menjalankan perintah setelah file disalin, sebelum instalasi selesai
 
-; 1. Menginstal Pip ke dalam Python embeddable
-Filename: "{app}\python\python.exe"; Parameters: """{app}\get-pip.py"""; WorkingDir: "{app}"; StatusMsg: "Memasang Pip..."; Flags: runhidden
-
-; 2. Menjalankan batch script untuk menginstal library
+; 1. Menjalankan batch script untuk menginstal library
 Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang library Python... Ini mungkin perlu beberapa saat."; Flags: runhidden
 
-; 3. (Opsional) Menjalankan aplikasi setelah instalasi selesai jika user mencentang box
+; 2. (Opsional) Menjalankan aplikasi setelah instalasi selesai jika user mencentang box
 ; (Flag di baris ini tidak diubah, karena ini adalah launcher aplikasi)
 Filename: "{app}\python\{#MyAppExeName}"; Parameters: """{app}\main.py"""; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
