@@ -17,6 +17,7 @@
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppVerName={#MyAppName}
 UninstallDisplayName={#MyAppName}
 
 ; Lokasi instalasi (di dalam Program Files)

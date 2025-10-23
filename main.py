@@ -678,9 +678,7 @@ KV = """
             orientation: 'vertical'
             size_hint_y: 1
             spacing: dp(1)
-            opacity: 0
-            size_hint_y: None
-            height: 0
+            size_hint_y: 1
 
             MDLabel:
                 text: "File untuk Dikonversi"
@@ -1057,10 +1055,6 @@ class MainScreen(MDScreen):
         self.ids.format_spinner_button.text = "Pilih Format"
         self.selected_format = None
         
-        self.ids.file_list_container.opacity = 0
-        self.ids.file_list_container.size_hint_y = None
-        self.ids.file_list_container.height = 0
-        
         self.is_processing = False
         self.current_processing_index = -1
         self._clear_results()
@@ -1207,11 +1201,6 @@ class MainScreen(MDScreen):
                 self.ids.file_list_grid.add_widget(error_label)
                 self.ids.file_list_grid.add_widget(na_label)
                 self.ids.file_list_grid.add_widget(fail_label)
-
-        if self.file_list:
-            # Tampilkan kontainer daftar file
-            self.ids.file_list_container.opacity = 1
-            self.ids.file_list_container.size_hint_y = 1
             
         # Perbarui label status dengan jumlah file total
         total_files = len(self.file_list)
