@@ -77,9 +77,9 @@ jobs:
         copy main.py ${{ env.STAGING_DIR }}\main.py || exit /b 1
         copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt || exit /b 1
         copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat || exit /b 1
-        echo Menyalin logo...
+        echo Menyalin logo ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.png ...
         copy assets\img\pdfextract.png ${{ env.STAGING_DIR }}\pdfextract.png || (echo "ERROR: Gagal menyalin logo assets\img\pdfextract.png" && exit /b 1)
-        echo Logo tersalin.
+        echo Logo tersalin ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.png.
         xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models || exit /b 1
 
     # 9. Unduh semua 'wheels' (SOLUSI FINAL UNTUK ODFPY)
@@ -150,12 +150,12 @@ jobs:
     - name: Compile Inno Setup installer
       shell: cmd
       run: |
-        REM Definisikan path absolut ke ikon
-        set SETUP_ICON_PATH=${{ github.workspace }}\dist\pdfextract.png
-        echo "Setup Icon Path: %SETUP_ICON_PATH%"
+        REM Verifikasi keberadaan file ikon di direktori dist
+        echo Verifying icon file presence in dist directory before compiling:
+        dir ${{ env.STAGING_DIR }}
 
-        REM Mengirimkan nomor versi DAN path ikon ke Inno Setup
-        iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}" /DSetupIconAbsPath="%SETUP_ICON_PATH%"
+        REM Mengirimkan nomor versi ke Inno Setup (Hapus /DSetupIconAbsPath)
+        iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}"
 
     # 13. Buat GitHub Release
     - name: Create GitHub Release
