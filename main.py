@@ -32,7 +32,6 @@ from kivy.clock import mainthread, Clock
 from kivy.lang import Builder
 from kivy.core.window import Window
 from kivy.metrics import dp
-from kivy.factory import Factory
 from kivy.properties import ObjectProperty, StringProperty, NumericProperty
 from plyer import filechooser
 from rapidocr_onnxruntime import RapidOCR
@@ -897,19 +896,6 @@ class ResultNoTablesCell(MDBoxLayout):
     """Sel kustom yang menampilkan status 'Tak Ada Tabel' di grid ResultScreen."""
     pass
 
-# Registrasi manual ke factory
-Factory.register('DownloadButtonCell', cls=DownloadButtonCell)
-Factory.register('ResultSuccessCell', cls=ResultSuccessCell)
-Factory.register('GridCellLabel', cls=GridCellLabel)
-Factory.register('GridCellLabelRight', cls=GridCellLabelRight)
-Factory.register('ProgressTextCell', cls=ProgressTextCell)
-Factory.register('FailedStatusCell', cls=FailedStatusCell)
-Factory.register('NoTablesStatusCell', cls=NoTablesStatusCell)
-Factory.register('ResultCellLabel', cls=ResultCellLabel)
-Factory.register('ResultCellLabelRight', cls=ResultCellLabelRight)
-Factory.register('ResultFailedCell', cls=ResultFailedCell)
-Factory.register('ResultNoTablesCell', cls=ResultNoTablesCell)
-
 Builder.load_string(KV)
 
 # --- Definisi Layar ---
@@ -1186,9 +1172,9 @@ class MainScreen(MDScreen):
                 file_name = os.path.basename(path)
                 file_size = self.get_file_size_str(path)
 
-                label_name = Factory.GridCellLabel(text=file_name, size_hint_x=0.6)
-                label_size = Factory.GridCellLabelRight(text=file_size, size_hint_x=0.15)
-                progress_widget = Factory.ProgressTextCell(
+                label_name = GridCellLabel(text=file_name, size_hint_x=0.6)
+                label_size = GridCellLabelRight(text=file_size, size_hint_x=0.15)
+                progress_widget = ProgressTextCell(
                     text="Menunggu",
                     size_hint_x=0.25
                 )
@@ -1199,7 +1185,7 @@ class MainScreen(MDScreen):
                 self.ids.file_list_grid.add_widget(progress_widget)
 
                 self.file_list.append({
-                    'index': current_index, # Indeks unik untuk file ini
+                    'index': current_index,
                     'path': path,
                     'name': file_name,
                     'original_name': os.path.splitext(file_name)[0],
@@ -1215,9 +1201,9 @@ class MainScreen(MDScreen):
             except Exception as e:
                 print(f"Gagal menambahkan file {path} ke daftar: {e}")
                 # Tambahkan baris error ke grid
-                error_label = Factory.GridCellLabel(text=f"Error: {os.path.basename(path)}", size_hint_x=0.6, theme_text_color="Error")
-                na_label = Factory.GridCellLabelRight(text="N/A", size_hint_x=0.15)
-                fail_label = Factory.ProgressTextCell(text="Gagal Muat", size_hint_x=0.25, theme_text_color="Error")
+                error_label = GridCellLabel(text=f"Error: {os.path.basename(path)}", size_hint_x=0.6, theme_text_color="Error")
+                na_label = GridCellLabelRight(text="N/A", size_hint_x=0.15)
+                fail_label = ProgressTextCell(text="Gagal Muat", size_hint_x=0.25, theme_text_color="Error")
                 self.ids.file_list_grid.add_widget(error_label)
                 self.ids.file_list_grid.add_widget(na_label)
                 self.ids.file_list_grid.add_widget(fail_label)
@@ -1294,7 +1280,7 @@ class MainScreen(MDScreen):
 
             current_widget = file_info.get('progress_widget')
             
-            # Fallback jika referensi widget hilang (jarang terjadi)
+            # Fallback jika referensi widget hilang
             if not current_widget or current_widget not in grid.children: 
                 print(f"Fallback: Mencari widget progress untuk index {file_index}")
                 try:
@@ -1309,7 +1295,7 @@ class MainScreen(MDScreen):
             grid.remove_widget(current_widget)
 
             # Buat widget label "Menunggu" yang baru
-            new_widget = Factory.ProgressTextCell(
+            new_widget = ProgressTextCell(
                 text="Menunggu",
                 size_hint_x=0.25
             )
@@ -1366,26 +1352,26 @@ class MainScreen(MDScreen):
                 result_grid.clear_widgets() 
                 
                 for f_info in self.file_list:
-                    result_grid.add_widget(Factory.ResultCellLabel(
+                    result_grid.add_widget(ResultCellLabel(
                         text=f_info['name'], 
                         size_hint_x=0.6
                     ))
-                    result_grid.add_widget(Factory.ResultCellLabelRight(
+                    result_grid.add_widget(ResultCellLabelRight(
                         text=f_info['size'], 
                         size_hint_x=0.15
                     ))
                     
                     if f_info['status'] == 'success':
-                        result_grid.add_widget(Factory.ResultSuccessCell(
+                        result_grid.add_widget(ResultSuccessCell(
                             file_index=f_info['index'], # Kirim index unik
                             size_hint_x=0.25
                         ))
                     elif f_info['status'] == 'failed':
-                        result_grid.add_widget(Factory.ResultFailedCell(
+                        result_grid.add_widget(ResultFailedCell(
                             size_hint_x=0.25
                         ))
                     else: # 'no_tables'
-                        result_grid.add_widget(Factory.ResultNoTablesCell(
+                        result_grid.add_widget(ResultNoTablesCell(
                             size_hint_x=0.25
                         ))
 
@@ -1492,7 +1478,7 @@ class MainScreen(MDScreen):
         if error:
              print(f"Melaporkan kegagalan untuk index {file_index}: {error}")
              file_info['status'] = 'failed'
-             new_widget = Factory.FailedStatusCell(size_hint_x=0.25)
+             new_widget = FailedStatusCell(size_hint_x=0.25)
         elif tables:
             # Sukses, ada tabel ditemukan
             file_info['tables'] = tables
@@ -1514,13 +1500,13 @@ class MainScreen(MDScreen):
 
             if file_info['status'] == 'success':
                  # Tampilkan tombol Unduh
-                 new_widget = Factory.DownloadButtonCell(file_index=file_info['index'], size_hint_x=0.25)
+                 new_widget = DownloadButtonCell(file_index=file_info['index'], size_hint_x=0.25)
             else:
-                 new_widget = Factory.FailedStatusCell(size_hint_x=0.25)
+                 new_widget = FailedStatusCell(size_hint_x=0.25)
         else:
             # Sukses, tapi tidak ada tabel ditemukan
             file_info['status'] = 'no_tables'
-            new_widget = Factory.NoTablesStatusCell(size_hint_x=0.25)
+            new_widget = NoTablesStatusCell(size_hint_x=0.25)
 
         if new_widget:
             # Tambahkan widget status baru ke grid
@@ -1529,7 +1515,7 @@ class MainScreen(MDScreen):
 
         # Lanjutkan ke file berikutnya
         self.current_processing_index = file_index + 1
-        self._process_next_file() 
+        self._process_next_file()
 
     def download_single_file(self, file_index):
         """Menangani logika untuk mengunduh satu file hasil."""
