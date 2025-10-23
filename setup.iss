@@ -14,8 +14,8 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName} ; Lokasi instalasi default
 DefaultGroupName={#MyAppName} ; Nama folder Start Menu default
-SetupIconFile=dist/pdfextract.png ; Logo untuk file Setup.exe (Path relatif saat compile)
-UninstallDisplayIcon={app}\pdfextract.png ; Logo untuk Uninstaller di Control Panel (Path saat runtime)
+SetupIconFile=dist/pdfextract.ico ; Logo untuk file Setup.exe (Path relatif saat compile)
+UninstallDisplayIcon={app}\pdfextract.ico ; Logo untuk Uninstaller di Control Panel (Path saat runtime)
 OutputBaseFilename=PDFExtract-Setup-v{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
@@ -54,7 +54,7 @@ Source: "dist\main.py"; DestDir: "{app}"
 Source: "dist\get-pip.py"; DestDir: "{app}"
 Source: "dist\requirements.txt"; DestDir: "{app}"
 Source: "dist\install_libs.bat"; DestDir: "{app}"
-Source: "dist\pdfextract.png"; DestDir: "{app}" ; <-- Salin logo ke folder instalasi
+Source: "dist\pdfextract.ico"; DestDir: "{app}" ; <-- Salin logo ke folder instalasi
 
 [Run]
 ; Filename: "{app}\vc_redist.x64.exe"; Parameters: ... (HAPUS BARIS INI)
@@ -82,7 +82,7 @@ Filename: "{cmd}"; Parameters: "/C echo pause >> ""{app}\StartApp.bat"""; Flags:
 [Icons]
 ; Shortcut di Start Menu
 ; Menambahkan IconFilename dan Flags: run
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\pdfextract.png"; Flags: run
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\pdfextract.ico"; Flags: run
 ; Shortcut Uninstaller (otomatis dapat ikon dari Setup section)
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 

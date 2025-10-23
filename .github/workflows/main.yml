@@ -77,9 +77,9 @@ jobs:
         copy main.py ${{ env.STAGING_DIR }}\main.py || exit /b 1
         copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt || exit /b 1
         copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat || exit /b 1
-        echo Menyalin logo ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.png ...
-        copy assets\img\pdfextract.png ${{ env.STAGING_DIR }}\pdfextract.png || (echo "ERROR: Gagal menyalin logo assets\img\pdfextract.png" && exit /b 1)
-        echo Logo tersalin ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.png.
+        echo Menyalin logo ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.ico ...
+        copy assets\img\pdfextract.ico ${{ env.STAGING_DIR }}\pdfextract.ico || (echo "ERROR: Gagal menyalin logo assets\img\pdfextract.ico" && exit /b 1)
+        echo Logo tersalin ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.ico.
         xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models || exit /b 1
 
     # 9. Unduh semua 'wheels' (SOLUSI FINAL UNTUK ODFPY)
