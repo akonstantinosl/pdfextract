@@ -15,12 +15,12 @@
 [Setup]
 ; Informasi dasar aplikasi
 AppName={#MyAppName}
-AppVerName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 
 ; Lokasi instalasi (di dalam Program Files)
 DefaultDirName={autopf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
 
 ; Ikon untuk installer (diambil dari variabel GitHub Actions)
 SetupIconFile=dist\pdfextract.ico

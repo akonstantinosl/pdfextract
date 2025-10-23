@@ -1,6 +1,5 @@
 @echo off
 REM Skrip ini dijalankan oleh Inno Setup untuk menginstal library Python.
-REM Ia mengasumsikan sedang dijalankan dari dalam folder instalasi.
 
 SET "LOG_FILE=%~dp0\pip_install_log.txt"
 SET "PYTHON_EXE=%~dp0\python\python.exe"

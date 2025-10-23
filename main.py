@@ -849,6 +849,7 @@ KV = """
         id: result_screen_id
         name: 'result'
 """
+
 # --- Definisi Kelas Widget Kustom ---
 class DownloadButtonCell(MDBoxLayout):
     """Widget kustom untuk sel di grid yang berisi tombol unduh."""
@@ -895,6 +896,19 @@ class ResultFailedCell(MDBoxLayout):
 class ResultNoTablesCell(MDBoxLayout):
     """Sel kustom yang menampilkan status 'Tak Ada Tabel' di grid ResultScreen."""
     pass
+
+# Registrasi manual ke factory
+Factory.register('DownloadButtonCell', cls=DownloadButtonCell)
+Factory.register('ResultSuccessCell', cls=ResultSuccessCell)
+Factory.register('GridCellLabel', cls=GridCellLabel)
+Factory.register('GridCellLabelRight', cls=GridCellLabelRight)
+Factory.register('ProgressTextCell', cls=ProgressTextCell)
+Factory.register('FailedStatusCell', cls=FailedStatusCell)
+Factory.register('NoTablesStatusCell', cls=NoTablesStatusCell)
+Factory.register('ResultCellLabel', cls=ResultCellLabel)
+Factory.register('ResultCellLabelRight', cls=ResultCellLabelRight)
+Factory.register('ResultFailedCell', cls=ResultFailedCell)
+Factory.register('ResultNoTablesCell', cls=ResultNoTablesCell)
 
 Builder.load_string(KV)
 
