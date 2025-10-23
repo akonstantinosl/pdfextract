@@ -4,6 +4,19 @@ import io
 import sys
 import gc
 import zipfile
+
+# Dapatkan direktori poppler
+if getattr(sys, 'frozen', False):
+    # Jika dijalankan sebagai aplikasi yang di-bundle
+    application_path = os.path.dirname(sys.executable)
+else:
+    # Jika dijalankan sebagai skrip python biasa
+    application_path = os.path.dirname(os.path.abspath(__file__))
+
+# Tambahkan path Poppler (yang di-bundle) ke environment PATH
+poppler_path = os.path.join(application_path, 'poppler', 'Library', 'bin')
+os.environ['PATH'] = poppler_path + os.pathsep + os.environ.get('PATH', '')
+
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
@@ -858,8 +871,44 @@ class DownloadButtonCell(MDBoxLayout):
 class ResultSuccessCell(MDBoxLayout):
     """Widget kustom untuk sel di grid hasil yang berisi tombol unduh."""
     file_index = NumericProperty(-1)
+    
+# Untuk MainScreen
+class GridCellLabel(MDLabel):
+    """Sel label dasar untuk grid di MainScreen."""
+    pass
 
+class GridCellLabelRight(GridCellLabel):
+    """Sel label dengan perataan tengah/kanan untuk grid di MainScreen."""
+    pass
 
+class ProgressTextCell(GridCellLabelRight):
+    """Sel label spesifik untuk menampilkan status progres di MainScreen."""
+    pass
+
+class FailedStatusCell(MDBoxLayout):
+    """Sel kustom yang menampilkan status 'Gagal' di grid MainScreen."""
+    pass
+
+class NoTablesStatusCell(MDBoxLayout):
+    """Sel kustom yang menampilkan status 'Tak Ada Tabel' di grid MainScreen."""
+    pass
+
+# Untuk ResultScreen
+class ResultCellLabel(MDLabel):
+    """Sel label dasar untuk grid di ResultScreen."""
+    pass
+
+class ResultCellLabelRight(ResultCellLabel):
+    """Sel label dengan perataan tengah/kanan untuk grid di ResultScreen."""
+    pass
+
+class ResultFailedCell(MDBoxLayout):
+    """Sel kustom yang menampilkan status 'Gagal' di grid ResultScreen."""
+    pass
+
+class ResultNoTablesCell(MDBoxLayout):
+    """Sel kustom yang menampilkan status 'Tak Ada Tabel' di grid ResultScreen."""
+    pass
 # --- Definisi Layar ---
 
 class ResultScreen(MDScreen):
@@ -1646,6 +1695,16 @@ class PDFExtractApp(MDApp):
     def build(self):
         """Metode build utama aplikasi Kivy. Mengatur judul jendela dan tema."""
         self.title = "PDFExtract" # Atur nama judul jendela
+        
+        try:
+            icon_path = os.path.join(application_path, 'pdfextract.ico')
+            if os.path.exists(icon_path):
+                self.icon = icon_path
+            else:
+                print(f"Peringatan: File ikon tidak ditemukan di {icon_path}")
+        except Exception as e:
+            print(f"Gagal mengatur ikon aplikasi: {e}")
+            
         self.theme_cls.primary_palette = "Blue"
         self.theme_cls.accent_palette = "Green"
         self.theme_cls.theme_style = "Light"

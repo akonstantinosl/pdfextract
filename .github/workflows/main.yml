@@ -1,11 +1,10 @@
-name: Build and Release Windows Installer (EXE)
+name: Build and Release PDFExtract Windows Installer (EXE)
 
 on:
   push:
     tags:
-      - 'v*.*.*' # Memicu HANYA saat tag (misal: v1.0.0) di-push
+      - 'v*.*' # Memicu untuk tag seperti v1.0, v1.1, dan juga v1.0.0
   workflow_dispatch: # Memperbolehkan trigger manual
-
 env:
   APP_NAME: "PDFExtract"
   PYTHON_VERSION: "3.12.7"
@@ -13,76 +12,70 @@ env:
   PYTHON_EMBED_ZIP: "python-3.12.7-embed-amd64.zip"
   POPPLER_ZIP: "Release-25.07.0-0.zip"
   POPPLER_DIR_NAME: "poppler-25.07.0"
-  STAGING_DIR: "dist" 
+  STAGING_DIR: "dist" # Folder sementara untuk menampung semua file installer
 
 jobs:
   build-release:
     runs-on: windows-latest
     
     permissions:
-      contents: write # Diperlukan untuk membuat rilis
+      contents: write # Diperlukan untuk membuat rilis di GitHub
 
     steps:
-    # 1. Checkout kode
+    # 1. Mengunduh kode dari repositori
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2. Setup Python (untuk menjalankan pip download)
+    # 2. Setup Python untuk menjalankan skrip build
     - name: Set up Python for build scripts
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
-    # 3. Buat folder staging 'dist'
+    # 3. Membuat folder 'dist' sebagai area staging
     - name: Create staging directory
       run: mkdir ${{ env.STAGING_DIR }}
 
-    # 4. Unduh & Ekstrak Python Embeddable
+    # 4. Mengunduh dan mengekstrak Python versi embeddable
     - name: Download and extract Python Embeddable
       shell: pwsh
       run: |
-        echo "Downloading Python from ${{ env.PYTHON_VERSION }}..."
         curl.exe -L -o "${{ env.PYTHON_EMBED_ZIP }}" "https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/${{ env.PYTHON_EMBED_ZIP }}"
-        echo "Extracting Python..."
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\python_embed"
         Expand-Archive -Path "${{ env.PYTHON_EMBED_ZIP }}" -DestinationPath "${{ env.STAGING_DIR }}\python_embed"
 
-    # 5. Edit file .pth (Wajib untuk pip)
+    # 5. Mengedit file ._pth agar Python dapat mengimpor 'site'
     - name: Uncomment 'import site' in .pth file
       shell: pwsh
       run: |
         $pth_file = "${{ env.STAGING_DIR }}\python_embed\python312._pth"
         (Get-Content $pth_file) -replace '#import site', 'import site' | Set-Content $pth_file
 
-    # 6. Unduh get-pip.py
+    # 6. Mengunduh 'get-pip.py' untuk menginstal pip di Python embeddable
     - name: Download get-pip.py
       shell: pwsh
       run: |
         curl.exe -L -o "${{ env.STAGING_DIR }}\get-pip.py" "https://bootstrap.pypa.io/get-pip.py"
 
-    # 7. Unduh & Ekstrak Poppler
+    # 7. Mengunduh dan mengekstrak Poppler untuk rendering PDF
     - name: Download and extract Poppler
       shell: pwsh
       run: |
-        echo "Downloading Poppler from ${{ env.POPPLER_VERSION }}..."
         curl.exe -L -o "${{ env.POPPLER_ZIP }}" "https://github.com/oschwartz10612/poppler-windows/releases/download/v${{ env.POPPLER_VERSION }}-0/${{ env.POPPLER_ZIP }}"
-        echo "Extracting Poppler..."
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\poppler_bin"
         Expand-Archive -Path "${{ env.POPPLER_ZIP }}" -DestinationPath "${{ env.STAGING_DIR }}\poppler_bin"
 
-    # 8. Salin file aplikasi ANDA DAN LOGO (DENGAN ERROR CHECK)
+    # 8. Menyalin file aplikasi, requirements, dan aset ke folder staging
     - name: Copy application files
       shell: cmd
       run: |
-        copy main.py ${{ env.STAGING_DIR }}\main.py || exit /b 1
-        copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt || exit /b 1
-        copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat || exit /b 1
-        echo Menyalin logo ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.ico ...
-        copy assets\img\pdfextract.ico ${{ env.STAGING_DIR }}\pdfextract.ico || (echo "ERROR: Gagal menyalin logo assets\img\pdfextract.ico" && exit /b 1)
-        echo Logo tersalin ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.ico.
-        xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models || exit /b 1
+        copy main.py ${{ env.STAGING_DIR }}\main.py
+        copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt
+        copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat
+        copy assets\img\pdfextract.ico ${{ env.STAGING_DIR }}\pdfextract.ico
+        xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models
 
-    # 9. Unduh semua 'wheels' (SOLUSI FINAL UNTUK ODFPY)
+    # 9. Mengunduh semua library Python (wheels) secara offline
     - name: Download Python wheels
       shell: pwsh # Menggunakan pwsh agar tanda backtick (`) berfungsi
       run: |
@@ -92,16 +85,14 @@ jobs:
         echo "Membuat direktori wheels..."
         mkdir ${{ env.STAGING_DIR }}\wheels
 
-        # Langkah 1: Buat file requirements sementara TANPA 'odfpy'
+        # Langkah 1: Buat file requirements sementara tanpa 'odfpy'
         echo "Membuat file requirements sementara tanpa odfpy..."
         $req_file = "${{ env.STAGING_DIR }}\requirements.txt"
         $temp_req_file = "${{ env.STAGING_DIR }}\temp_binary_reqs.txt"
         Get-Content $req_file | Select-String -Pattern "odfpy" -NotMatch | Set-Content $temp_req_file
 
-        echo "--- Mengunduh HANYA binary wheels yang kompatibel (dari temp_binary_reqs.txt) ---"
-        cat $temp_req_file # Mencetak isi file temp untuk debug
-
-        # Langkah 2: Unduh semua library binary menggunakan file temp. Ini HARUS SUKSES.
+        # Langkah 2: Unduh semua library binary yang kompatibel dengan Python 3.12 x64
+        echo "Mengunduh hanya binary wheels..."
         pip download -d ${{ env.STAGING_DIR }}\wheels `
           -r $temp_req_file `
           --platform win_amd64 `
@@ -110,63 +101,66 @@ jobs:
           --abi abi3 `
           --only-binary=:all:
 
-        echo "--- Mengunduh Source Packages (odfpy dan dependensinya) ---"
-
-        # Langkah 3: Unduh 'odfpy' (dan dependensinya seperti defusedxml) secara terpisah.
+        # Langkah 3: Unduh 'odfpy' (source package) secara terpisah
+        echo "Mengunduh Source Packages (odfpy)..."
         pip download -d ${{ env.STAGING_DIR }}\wheels odfpy
 
-    # 10. Install Inno Setup
+    # 10. Menginstal Inno Setup (software pembuat installer)
     - name: Install Inno Setup
       shell: pwsh
       run: |
         curl.exe -L -o "is-stable.exe" "https://jrsoftware.org/download.php/is.exe?site=1"
         Start-Process -FilePath "is-stable.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOCANCEL", "/SP-", "/LOG=inno_setup_install.log" -Wait
         $Env:Path += ";C:\Program Files (x86)\Inno Setup 6"
-      
-    # 11. Unduh file Bahasa Indonesia
+        
+    # 11. Mengunduh file bahasa Indonesia untuk installer
     - name: Download Inno Setup Indonesian Language File
       shell: pwsh
       run: |
         curl.exe -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl" "https://github.com/jrsoftware/issrc/raw/main/Files/Languages/Unofficial/Indonesian.isl"
         
-    # 11.5. Dapatkan Versi dari Git Tag (DIPERBARUI & AMAN)
+    # 12. Mengambil nomor versi dari Git Tag (dan memotong jadi 2-digit)
     - name: Get version from Git tag
       id: get_version
       shell: pwsh
       run: |
         if ("${{ github.ref }}".StartsWith("refs/tags/v")) {
-          # Sukses: Mengambil "1.0.0" dari "refs/tags/v1.0.0"
-          $version = "${{ github.ref }}".Split('/')[-1].Substring(1)
-          echo "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "Release version is $version"
+          # Ambil versi penuh dari tag (misal: "1.0.0" atau "1.0")
+          $full_version = "${{ github.ref }}".Split('/')[-1].Substring(1)
+
+          # Pisahkan versi berdasarkan titik
+          $version_parts = $full_version.Split('.')
+
+          # Ambil dua bagian pertama dan gabungkan kembali
+          #    - "1.0.0" -> ["1", "0", "0"] -> (Ambil "1", "0") -> "1.0"
+          #    - "1.0"   -> ["1", "0"]     -> (Ambil "1", "0") -> "1.0"
+          $short_version = ($version_parts[0..1]) -join '.'
+
+          # Simpan versi 2-digit ini ke GITHUB_ENV
+          echo "APP_VERSION=$short_version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "Full tag version: $full_version"
+          echo "Using 2-digit version for installer: $short_version"
         } else {
-          # Gagal: Workflow tidak dijalankan pada tag
-          echo "::error::Workflow ini harus dipicu dengan mendorong tag (misal: 'v1.0.0'), bukan branch."
+          echo "::error::Workflow ini harus dipicu dengan mendorong tag (misal: 'v1.0'), bukan branch."
           echo "::error::Trigger terdeteksi: ${{ github.ref }}"
           exit 1
         }
 
-    # 12. Jalankan compiler Inno Setup (DIPERBARUI DENGAN PATH IKON ABSOLUT)
+    # 13. Menjalankan compiler Inno Setup
     - name: Compile Inno Setup installer
       shell: cmd
       run: |
-        REM Pindah ke direktori root repositori (opsional, tapi tidak berbahaya)
         cd ${{ github.workspace }}
-        echo Current directory: %CD%
 
-        REM Definisikan path absolut ke ikon DI DALAM DIST
+        REM Definisikan path absolut ke ikon DI DALAM folder 'dist'
         set SETUP_ICON_PATH=%CD%\${{ env.STAGING_DIR }}\pdfextract.ico
-        echo Setup Icon Path for define: "%SETUP_ICON_PATH%"
 
-        REM Verifikasi keberadaan file ikon di direktori dist
-        echo Verifying icon file presence:
-        dir "%SETUP_ICON_PATH%"
-
-        REM Mengirimkan nomor versi DAN path ikon absolut ke Inno Setup
-        REM Kutip ganda di sekitar %SETUP_ICON_PATH% ditangani oleh cmd
+        REM Menjalankan compiler Inno Setup (iscc)
+        REM /DMyAppVersion mengirimkan versi ke script .iss
+        REM /DSetupIconAbsPath mengirimkan path ikon absolut ke script .iss
         iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}" /DSetupIconAbsPath="%SETUP_ICON_PATH%"
 
-    # 13. Buat GitHub Release
+    # 14. Membuat GitHub Release dan mengunggah file Setup.exe
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       env:
@@ -174,10 +168,9 @@ jobs:
       with:
         tag_name: ${{ github.ref }}
         name: Release ${{ env.APP_VERSION }}
-        # --- INI ADALAH BARIS YANG DIPERBAIKI ---
         files: Output/PDFExtract-Setup-v${{ env.APP_VERSION }}.exe
         
-    # 14. Upload Setup.exe sebagai artifact (Opsional)
+    # 15. (Opsional) Mengunggah installer sebagai artifact build internal
     - name: Upload installer artifact (Internal)
       uses: actions/upload-artifact@v4
       with:

@@ -1,49 +1,67 @@
 ; Skrip Inno Setup untuk PDFExtract
 
+; --- Definisi Variabel Global ---
 #define MyAppName "PDFExtract"
+; MyAppVersion diambil dari GitHub Actions (/DMyAppVersion=...)
 #ifndef MyAppVersion
-  #define MyAppVersion "0.0.0-dev" // Versi diambil dari tag Git
+  ; Versi default jika kompilasi manual
+  #define MyAppVersion "0.0.0-dev"
 #endif
-#define MyAppPublisher "PDFExtract Developer"
-#define MyAppExeName "StartApp.bat"
+#define MyAppPublisher "JST Indonesia"
+; Menjalankan pythonw.exe sebagai launcher utama
+#define MyAppExeName "pythonw.exe" 
 #define MyPopplerDirName "poppler-25.07.0"
 
 [Setup]
+; Informasi dasar aplikasi
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\{#MyAppName} ; Lokasi instalasi default
-DefaultGroupName={#MyAppName} ; Nama folder Start Menu default
+
+; Lokasi instalasi (di dalam Program Files)
+DefaultDirName={autopf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
+
+; Ikon untuk installer (diambil dari variabel GitHub Actions)
 SetupIconFile=dist\pdfextract.ico
-UninstallDisplayIcon={app}\pdfextract.ico ; Logo untuk Uninstaller di Control Panel (Path saat runtime)
+; Ikon untuk Uninstaller di Control Panel
+UninstallDisplayIcon={app}\pdfextract.ico
+; Nama file output installer
 OutputBaseFilename=PDFExtract-Setup-v{#MyAppVersion}
+
+; Pengaturan kompresi untuk installer yang lebih kecil
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
- ; Meminta hak Admin, diperlukan untuk instalasi ke Program Files dan menjalankan pip
- PrivilegesRequired=admin
+
+; Meminta hak Admin, diperlukan untuk instalasi ke Program Files
+PrivilegesRequired=admin
 
 [Languages]
+; Menentukan bahasa yang tersedia saat instalasi
 Name: "indonesian"; MessagesFile: "compiler:Languages\Indonesian.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
+; Kustomisasi teks UI untuk bahasa Indonesia
 indonesian.FinishedHeading=Instalasi Selesai
 indonesian.FinishedLabel=Setup telah selesai menginstal {#MyAppName} di komputer Anda. Aplikasi dapat dijalankan dengan memilih shortcut yang terpasang.
-indonesian.RunLabel=Luncurkan {#MyAppName} ; Teks untuk checkbox di halaman terakhir
+indonesian.RunLabel=Luncurkan {#MyAppName}
 
+; Kustomisasi teks UI untuk bahasa Inggris
 english.FinishedHeading=Setup Complete
 english.FinishedLabel=Setup has finished installing {#MyAppName} on your computer. The application may be launched by selecting the installed shortcuts.
-english.RunLabel=Launch {#MyAppName} ; Text for the checkbox on the final page
+english.RunLabel=Launch {#MyAppName}
 
 [Dirs]
+; Direktori kustom yang akan dibuat di dalam folder instalasi
 Name: "{app}\python"
 Name: "{app}\models"
 Name: "{app}\poppler"
 Name: "{app}\wheels"
 
 [Files]
-; Menyalin semua file dari folder 'dist'
+; Menyalin semua file dari folder 'dist' (staging) ke folder instalasi
 Source: "dist\python_embed\*"; DestDir: "{app}\python"; Flags: recursesubdirs createallsubdirs
 Source: "dist\models\*"; DestDir: "{app}\models"; Flags: recursesubdirs createallsubdirs
 Source: "dist\poppler_bin\{#MyPopplerDirName}\*"; DestDir: "{app}\poppler"; Flags: recursesubdirs createallsubdirs
@@ -52,36 +70,35 @@ Source: "dist\main.py"; DestDir: "{app}"
 Source: "dist\get-pip.py"; DestDir: "{app}"
 Source: "dist\requirements.txt"; DestDir: "{app}"
 Source: "dist\install_libs.bat"; DestDir: "{app}"
-; Salin logo ke folder instalasi
 Source: "dist\pdfextract.ico"; DestDir: "{app}"
 
 [Run]
-; 1. Instal Pip (Sekarang jadi langkah pertama)
+; Menjalankan perintah setelah file disalin, sebelum instalasi selesai
+
+; 1. Menginstal Pip ke dalam Python embeddable
 Filename: "{app}\python\python.exe"; Parameters: """{app}\get-pip.py"""; WorkingDir: "{app}"; StatusMsg: "Memasang Pip..."
 
-; 2. Jalankan skrip batch instalasi library
+; 2. Menjalankan batch script untuk menginstal semua library (offline dari folder 'wheels')
 Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang library Python (KivyMD, Pandas, dll.)... Ini mungkin perlu beberapa saat."
 
-; 3. Buat launcher 'StartApp.bat'
-Filename: "{cmd}"; Parameters: "/C echo @echo off > ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo :: Menyiapkan Poppler PATH >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo set ""PATH=%~dp0\poppler\Library\bin;%%PATH%%"" >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo :: Cek versi Python untuk debug >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" --version >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo. >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo :: Menjalankan aplikasi >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo ""%~dp0\python\python.exe"" ""%~dp0\main.py"" >> ""{app}\StartApp.bat"""; Flags: runhidden
-Filename: "{cmd}"; Parameters: "/C echo pause >> ""{app}\StartApp.bat"""; Flags: runhidden
-
-; Opsi untuk menjalankan aplikasi setelah instalasi selesai
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+; 3. (Opsional) Menjalankan aplikasi setelah instalasi selesai jika user mencentang box
+Filename: "{app}\python\{#MyAppExeName}"; Parameters: """{app}\main.py"""; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Icons]
-; Shortcut di Start Menu dengan ikon kustom
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\pdfextract.ico"
-; Shortcut Uninstaller (otomatis dapat ikon dari Setup section)
+; Membuat shortcut di Start Menu
+Name: "{group}\{#MyAppName}"; \
+  ; Target: pythonw.exe
+  Filename: "{app}\python\{#MyAppExeName}"; \
+  ; Argumen: main.py
+  Parameters: """{app}\main.py"""; \
+  ; Mulai di: folder aplikasi
+  WorkingDir: "{app}"; \
+  ; Ikon: logo aplikasi
+  IconFilename: "{app}\pdfextract.ico"
+
+; Membuat shortcut Uninstaller di Start Menu
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 
 [UninstallDelete]
-; Membersihkan semua file saat uninstall
+; Membersihkan seluruh folder aplikasi saat uninstall
 Type: filesandordirs; Name: "{app}"
