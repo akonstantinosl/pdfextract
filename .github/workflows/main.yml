@@ -78,8 +78,11 @@ jobs:
         copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt || exit /b 1
         copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat || exit /b 1
         echo Menyalin logo ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.ico ...
-        copy assets\img\pdfextract.ico ${{ env.STAGING_DIR }}\pdfextract.ico || (echo "ERROR: Gagal menyalin logo assets\img\pdfextract.ico" && exit /b 1)
-        echo Logo tersalin ke ${{ github.workspace }}\${{ env.STAGING_DIR }}\pdfextract.ico.
+        copy assets\img\pdfextract.ico ${{ env.STAGING_DIR }}\pdfextract.ico || (echo "ERROR: Gagal menyalin logo ke dist" && exit /b 1)
+        echo Logo tersalin ke dist.
+        echo Menyalin logo ke root (sementara untuk ISCC) ${{ github.workspace }}\pdfextract.ico ...
+        copy assets\img\pdfextract.ico .\pdfextract.ico || (echo "ERROR: Gagal menyalin logo ke root" && exit /b 1)
+        echo Logo tersalin ke root.
         xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models || exit /b 1
 
     # 9. Unduh semua 'wheels' (SOLUSI FINAL UNTUK ODFPY)
@@ -154,12 +157,20 @@ jobs:
         cd ${{ github.workspace }}
         echo Current directory after cd: %CD%
 
-        REM Verifikasi keberadaan file ikon di direktori dist
-        echo Verifying icon file presence relative to current directory:
-        dir ${{ env.STAGING_DIR }}
+        REM Verifikasi keberadaan file ikon di direktori root DAN dist
+        echo Verifying icon file presence:
+        dir pdfextract.ico
+        dir ${{ env.STAGING_DIR }}\pdfextract.ico
 
         REM Mengirimkan nomor versi ke Inno Setup
         iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}"
+
+    # 12.5 Hapus ikon sementara dari root
+    - name: Clean up temporary root icon
+      shell: cmd
+      run: |
+        echo Cleaning up temporary root icon...
+        del pdfextract.ico
 
     # 13. Buat GitHub Release
     - name: Create GitHub Release
