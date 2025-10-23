@@ -649,7 +649,6 @@ KV = """
             height: dp(48)
             spacing: dp(10)
             adaptive_height: True
-            opacity: 1
             
             MDFillRoundFlatButton:
                 id: select_button
@@ -676,9 +675,10 @@ KV = """
         MDBoxLayout:
             id: file_list_container
             orientation: 'vertical'
-            size_hint_y: 1
+            size_hint_y: None
+            height: 0
             spacing: dp(1)
-            size_hint_y: 1
+            opacity: 0
 
             MDLabel:
                 text: "File untuk Dikonversi"
@@ -717,6 +717,7 @@ KV = """
 
             # Scrollable List
             MDScrollView:
+                size_hint_y: 1
                 bar_width: dp(10)
                 MDGridLayout:
                     id: file_list_grid
@@ -730,11 +731,7 @@ KV = """
         
         # Spacer
         MDBoxLayout:
-            # Aturan ini membuat spacer "menghilang" (tidak memakan ruang)
-            # saat daftar file terlihat (opacity == 1).
-            opacity: 0 if file_list_container.opacity == 1 else 1
-            size_hint_y: 1 if file_list_container.opacity == 0 else None
-            height: 0 if file_list_container.opacity == 1 else dp(1)
+            size_hint_y: 1
 
 
 # --- LAYAR HASIL (UNDUH) ---
@@ -1044,6 +1041,11 @@ class MainScreen(MDScreen):
         self.ids.file_list_grid.clear_widgets()
         self.file_list = []
         
+        # Sembunyikan container file list
+        self.ids.file_list_container.opacity = 0
+        self.ids.file_list_container.size_hint_y = None
+        self.ids.file_list_container.height = 0
+        
         self.ids.button_toolbar.opacity = 1
         self.ids.button_toolbar.size_hint_y = None
         self.ids.button_toolbar.height = dp(48)
@@ -1156,6 +1158,12 @@ class MainScreen(MDScreen):
         """Menambahkan file baru (path) ke 'self.file_list' dan memperbarui UI grid."""
         if not new_paths: 
             return
+        
+        # Tampilkan container file list jika masih tersembunyi
+        if self.ids.file_list_container.opacity == 0:
+            self.ids.file_list_container.opacity = 1
+            self.ids.file_list_container.size_hint_y = 1
+            self.ids.file_list_container.height = 0  # Biarkan size_hint_y mengatur tinggi
         
         start_index = len(self.file_list)
 
