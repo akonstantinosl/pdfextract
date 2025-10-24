@@ -72,15 +72,18 @@ Source: "dist\main.py"; DestDir: "{app}"
 Source: "dist\requirements.txt"; DestDir: "{app}"
 Source: "dist\install_libs.bat"; DestDir: "{app}"
 Source: "dist\pdfextract.ico"; DestDir: "{app}"
+Source: "dist\get-pip.py"; DestDir: "{app}"
 
 [Run]
-; Menjalankan perintah setelah file disalin, sebelum instalasi selesai
+; 1. Memasang Pip (Langkah pertama, wajib untuk instalasi library)
+; Ini akan membuat folder 'Scripts' dan 'pip.exe'
+Filename: "{app}\python\python.exe"; Parameters: """{app}\get-pip.py"""; WorkingDir: "{app}"; StatusMsg: "Memasang Pip..."; Flags: runhidden
 
-; 1. Menjalankan batch script untuk menginstal library
+; 2. Menjalankan batch script untuk menginstal library dari folder 'wheels'
+; Skrip ini sekarang akan berhasil karena pip.exe sudah ada
 Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang library Python... Ini mungkin perlu beberapa saat."; Flags: runhidden
 
-; 2. (Opsional) Menjalankan aplikasi setelah instalasi selesai jika user mencentang box
-; (Flag di baris ini tidak diubah, karena ini adalah launcher aplikasi)
+; 3. (Opsional) Menjalankan aplikasi setelah instalasi selesai jika user mencentang box
 Filename: "{app}\python\{#MyAppExeName}"; Parameters: """{app}\main.py"""; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Icons]
