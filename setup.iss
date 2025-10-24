@@ -73,9 +73,16 @@ Source: "dist\requirements.txt"; DestDir: "{app}"
 Source: "dist\install_libs.bat"; DestDir: "{app}"
 Source: "dist\pdfextract.ico"; DestDir: "{app}"
 Source: "dist\get-pip.py"; DestDir: "{app}"
+Source: "dist\vc_redist.x64.exe"; DestDir: "{app}"; Flags: deleteafterinstall
 
 [Run]
-; 1. Memasang Pip (Langkah pertama, wajib untuk instalasi library)
+; 1. Memasang Microsoft Visual C++ Redistributable
+Filename: "{app}\vc_redist.x64.exe"; \
+  Parameters: "/install /passive /norestart"; \
+  WorkingDir: "{app}"; \
+  StatusMsg: "Memasang komponen sistem Microsoft Visual C++..."; \
+  Flags: runhidden skipifdoesntexist waituntilterminated
+; 2. Memasang Pip
 ;    Menjalankan get-pip.py secara offline menggunakan wheels yang sudah di-bundle
 Filename: "{app}\python\python.exe"; \
   Parameters: """{app}\get-pip.py"" --no-index --find-links=""{app}\wheels"""; \
@@ -83,13 +90,13 @@ Filename: "{app}\python\python.exe"; \
   StatusMsg: "Memasang Pip..."; \
   Flags: runhidden
 
-; 2. Menjalankan batch script untuk menginstal library dari folder 'wheels'
+; 3. Menjalankan batch script untuk menginstal library dari folder 'wheels'
 Filename: "{app}\install_libs.bat"; \
   WorkingDir: "{app}"; \
   StatusMsg: "Memasang library Python... Ini mungkin perlu beberapa saat."; \
   Flags: runhidden
 
-; 3. (Opsional) Menjalankan aplikasi setelah instalasi selesai jika user mencentang box
+; 4. (Opsional) Menjalankan aplikasi setelah instalasi selesai jika user mencentang box
 Filename: "{app}\python\{#MyAppExeName}"; \
   Parameters: """{app}\main.py"""; \
   WorkingDir: "{app}"; \

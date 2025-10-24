@@ -1,4 +1,23 @@
 import os
+os.environ['KIVY_ASYNC_LIB'] = 'trio'
+from kivymd.app import MDApp
+from kivymd.uix.screen import MDScreen
+from kivymd.uix.screenmanager import MDScreenManager
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.button import MDFillRoundFlatButton, MDFillRoundFlatIconButton
+from kivymd.uix.label import MDLabel
+from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.list import OneLineListItem
+from kivymd.uix.scrollview import MDScrollView
+from kivymd.uix.gridlayout import MDGridLayout
+from kivymd.uix.dialog import MDDialog
+from kivy.clock import mainthread, Clock
+from kivy.lang import Builder
+from kivy.core.window import Window
+from kivy.metrics import dp
+from kivy.uix.widget import Widget
+from kivy.properties import ObjectProperty, StringProperty, NumericProperty
+
 import threading
 import io
 import sys
@@ -40,23 +59,6 @@ if sys.platform == 'win32':
     # Ganti subprocess.Popen dengan versi silent
     subprocess.Popen = _silent_popen
 
-from kivymd.app import MDApp
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.screenmanager import MDScreenManager
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDFillRoundFlatButton, MDFillRoundFlatIconButton
-from kivymd.uix.label import MDLabel
-from kivymd.uix.menu import MDDropdownMenu
-from kivymd.uix.list import OneLineListItem
-from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.gridlayout import MDGridLayout
-from kivymd.uix.dialog import MDDialog
-from kivy.clock import mainthread, Clock
-from kivy.lang import Builder
-from kivy.core.window import Window
-from kivy.metrics import dp
-from kivy.uix.widget import Widget
-from kivy.properties import ObjectProperty, StringProperty, NumericProperty
 from plyer import filechooser
 from rapidocr_onnxruntime import RapidOCR
 import numpy as np

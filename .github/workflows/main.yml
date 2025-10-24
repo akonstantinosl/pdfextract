@@ -71,7 +71,16 @@ jobs:
         New-Item -ItemType Directory -Path "${{ env.STAGING_DIR }}\poppler_bin"
         Expand-Archive -Path "${{ env.POPPLER_ZIP }}" -DestinationPath "${{ env.STAGING_DIR }}\poppler_bin"
 
-    # 8. Menyalin file aplikasi, requirements, dan aset ke folder staging
+    # 8. Download Visual C++ Redistributable
+    - name: Download Visual C++ Redistributable
+      shell: pwsh
+      run: |
+        echo "Downloading VC++ Redistributable..."
+        # Link typically points to the latest VS 2015-2022 x64 redistributable
+        curl.exe -L -o "${{ env.STAGING_DIR }}\vc_redist.x64.exe" "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+        echo "VC++ Redistributable downloaded to staging directory."
+
+    # 9. Menyalin file aplikasi, requirements, dan aset ke folder staging
     - name: Copy application files
       shell: cmd
       run: |
@@ -81,7 +90,7 @@ jobs:
         copy assets\img\pdfextract.ico ${{ env.STAGING_DIR }}\pdfextract.ico
         xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models
 
-    # 9. Mengunduh semua library Python (wheels) secara offline
+    # 10. Mengunduh semua library Python (wheels) secara offline
     - name: Download Python wheels
       shell: pwsh # Menggunakan pwsh agar tanda backtick (`) berfungsi
       run: |
@@ -117,7 +126,7 @@ jobs:
         echo "Mengunduh pip, setuptools, dan wheel..."
         pip download -d ${{ env.STAGING_DIR }}\wheels pip setuptools wheel
 
-    # 10. Menginstal Inno Setup (software pembuat installer)
+    # 11. Menginstal Inno Setup (software pembuat installer)
     - name: Install Inno Setup
       shell: pwsh
       run: |
@@ -125,13 +134,13 @@ jobs:
         Start-Process -FilePath "is-stable.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOCANCEL", "/SP-", "/LOG=inno_setup_install.log" -Wait
         $Env:Path += ";C:\Program Files (x86)\Inno Setup 6"
         
-    # 11. Mengunduh file bahasa Indonesia untuk installer
+    # 12. Mengunduh file bahasa Indonesia untuk installer
     - name: Download Inno Setup Indonesian Language File
       shell: pwsh
       run: |
         curl.exe -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Indonesian.isl" "https://github.com/jrsoftware/issrc/raw/main/Files/Languages/Unofficial/Indonesian.isl"
         
-    # 12. Mengambil nomor versi dari Git Tag (dan memotong jadi 2-digit)
+    # 13. Mengambil nomor versi dari Git Tag (dan memotong jadi 2-digit)
     - name: Get version from Git tag
       id: get_version
       shell: pwsh
@@ -158,7 +167,7 @@ jobs:
           exit 1
         }
 
-    # 13. Menjalankan compiler Inno Setup
+    # 14. Menjalankan compiler Inno Setup
     - name: Compile Inno Setup installer
       shell: cmd
       run: |
@@ -172,7 +181,7 @@ jobs:
         REM /DSetupIconAbsPath mengirimkan path ikon absolut ke script .iss
         iscc.exe "setup.iss" /DMyAppVersion="${{ env.APP_VERSION }}" /DSetupIconAbsPath="%SETUP_ICON_PATH%"
 
-    # 14. Membuat GitHub Release dan mengunggah file Setup.exe
+    # 15. Membuat GitHub Release dan mengunggah file Setup.exe
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       env:
@@ -182,7 +191,7 @@ jobs:
         name: Release ${{ env.APP_VERSION }}
         files: Output/PDFExtract-Setup-v${{ env.APP_VERSION }}.exe
         
-    # 15. (Opsional) Mengunggah installer sebagai artifact build internal
+    # 16. (Opsional) Mengunggah installer sebagai artifact build internal
     - name: Upload installer artifact (Internal)
       uses: actions/upload-artifact@v4
       with:
