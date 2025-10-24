@@ -10,4 +10,4 @@ openpyxl
 odfpy
 opencv-python
 scipy
-setuptools
+trio

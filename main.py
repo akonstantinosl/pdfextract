@@ -1,4 +1,5 @@
 import os
+os.environ['KIVY_ASYNC_LIB'] = 'trio'
 import threading
 import io
 import sys
