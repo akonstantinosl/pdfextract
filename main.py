@@ -55,6 +55,7 @@ from kivy.clock import mainthread, Clock
 from kivy.lang import Builder
 from kivy.core.window import Window
 from kivy.metrics import dp
+from kivy.uix.widget import Widget
 from kivy.properties import ObjectProperty, StringProperty, NumericProperty
 from plyer import filechooser
 from rapidocr_onnxruntime import RapidOCR
@@ -567,37 +568,79 @@ KV = """
     shorten: False
     text_size: (self.width, None)
 
+<WaitingCellWithDelete>:
+    orientation: 'horizontal'
+    padding: dp(5)
+    spacing: dp(5)
+    md_bg_color: app.theme_cls.bg_normal
+    
+    MDLabel:
+        text: 'Menunggu'
+        theme_text_color: "Hint"
+        halign: 'center'
+        valign: 'middle'
+        size_hint_x: 0.7
+    
+    MDIconButton:
+        icon: 'close'
+        theme_text_color: "Error"
+        pos_hint: {'center_y': 0.5}
+        size_hint: (None, None)
+        size: (dp(30), dp(30))
+        on_release: app.root.main_screen.remove_file_from_list(root.file_index)
+
 <DownloadButtonCell>:
+    orientation: 'vertical'
     padding: dp(5)
     md_bg_color: app.theme_cls.bg_normal
-    MDFillRoundFlatButton:
-        text: 'Unduh'
-        md_bg_color: app.theme_cls.accent_color
-        pos_hint: {'center_y': 0.5}
-        on_release: app.root.main_screen.download_single_file(root.file_index)
+    
+    MDBoxLayout:
+        orientation: 'horizontal'
+        Widget:
+        MDFillRoundFlatIconButton:
+            text: 'Unduh'
+            icon: 'download'
+            md_bg_color: app.theme_cls.accent_color
+            size_hint: (None, None)
+            size: (dp(100), dp(36))
+            pos_hint: {'center_y': 0.5}
+            on_release: app.root.main_screen.download_single_file(root.file_index)
+        Widget:
 
 <FailedStatusCell@MDBoxLayout>:
     padding: dp(5)
     md_bg_color: app.theme_cls.bg_normal
-    MDLabel:
-        text: 'Gagal'
-        theme_text_color: "Error"
-        bold: True
-        halign: 'center'
-        valign: 'middle'
+    
+    MDBoxLayout:
+        orientation: 'horizontal'
+        Widget:
+        MDLabel:
+            text: 'Gagal'
+            theme_text_color: "Error"
+            bold: True
+            halign: 'center'
+            valign: 'middle'
+            size_hint: (None, None)
+            size: (dp(80), dp(36))
+        Widget:
 
 <NoTablesStatusCell@MDBoxLayout>:
     padding: dp(5)
     md_bg_color: app.theme_cls.bg_normal
-    MDLabel:
-        text: 'Tak Ada Tabel'
-        theme_text_color: "Hint"
-        halign: 'center'
-        valign: 'middle'
+    
+    MDBoxLayout:
+        orientation: 'horizontal'
+        Widget:
+        MDLabel:
+            text: 'Tak Ada Tabel'
+            theme_text_color: "Hint"
+            halign: 'center'
+            valign: 'middle'
+            size_hint: (None, None)
+            size: (dp(100), dp(36))
+        Widget:
 
 <ProgressTextCell@GridCellLabelRight>:
-# --- Akhir Definisi Cell (MainScreen) ---
-
 
 # --- Definisi Cell (ResultScreen) ---
 <ResultCellLabel@MDLabel>:
@@ -623,34 +666,55 @@ KV = """
     text_size: (self.width, None)
 
 <ResultSuccessCell>:
+    orientation: 'vertical'
     padding: dp(5)
     md_bg_color: app.theme_cls.bg_normal
-    MDFillRoundFlatButton:
-        text: 'Unduh'
-        md_bg_color: app.theme_cls.accent_color
-        pos_hint: {'center_y': 0.5}
-        on_release: app.root.main_screen.download_single_file(root.file_index)
+    
+    MDBoxLayout:
+        orientation: 'horizontal'
+        Widget:
+        MDFillRoundFlatIconButton:
+            text: 'Unduh'
+            icon: 'download'
+            md_bg_color: app.theme_cls.accent_color
+            size_hint: (None, None)
+            size: (dp(100), dp(36))
+            pos_hint: {'center_y': 0.5}
+            on_release: app.root.main_screen.download_single_file(root.file_index)
+        Widget:
 
 <ResultFailedCell@MDBoxLayout>:
     padding: dp(5)
     md_bg_color: app.theme_cls.bg_normal
-    MDLabel:
-        text: 'Gagal'
-        theme_text_color: "Error"
-        bold: True
-        halign: 'center'
-        valign: 'middle'
+    
+    MDBoxLayout:
+        orientation: 'horizontal'
+        Widget:
+        MDLabel:
+            text: 'Gagal'
+            theme_text_color: "Error"
+            bold: True
+            halign: 'center'
+            valign: 'middle'
+            size_hint: (None, None)
+            size: (dp(80), dp(36))
+        Widget:
 
 <ResultNoTablesCell@MDBoxLayout>:
     padding: dp(5)
     md_bg_color: app.theme_cls.bg_normal
-    MDLabel:
-        text: 'Tak Ada Tabel'
-        theme_text_color: "Hint"
-        halign: 'center'
-        valign: 'middle'
-# --- Akhir Definisi Cell (ResultScreen) ---
-
+    
+    MDBoxLayout:
+        orientation: 'horizontal'
+        Widget:
+        MDLabel:
+            text: 'Tak Ada Tabel'
+            theme_text_color: "Hint"
+            halign: 'center'
+            valign: 'middle'
+            size_hint: (None, None)
+            size: (dp(100), dp(36))
+        Widget:
 
 # --- LAYAR UTAMA (KONVERSI) ---
 <MainScreen>:
@@ -684,9 +748,10 @@ KV = """
             spacing: dp(10)
             adaptive_height: True
             
-            MDFillRoundFlatButton:
+            MDFillRoundFlatIconButton:
                 id: select_button
                 text: 'Pilih File'
+                icon: 'file-upload'
                 on_release: root.select_file()
                 md_bg_color: app.theme_cls.accent_color
                 size_hint_x: 0.33
@@ -698,9 +763,10 @@ KV = """
                 on_release: root.format_menu.open()
                 size_hint_x: 0.33
 
-            MDFillRoundFlatButton:
+            MDFillRoundFlatIconButton:
                 id: convert_button
                 text: 'Konversi Sekarang'
+                icon: 'cog-refresh'
                 on_release: root.start_conversion()
                 size_hint_x: 0.33
                 disabled: True
@@ -765,8 +831,8 @@ KV = """
         
         # Spacer
         MDBoxLayout:
+            id: main_screen_spacer
             size_hint_y: 1
-
 
 # --- LAYAR HASIL (UNDUH) ---
 <ResultScreen>:
@@ -803,45 +869,51 @@ KV = """
             padding_y: dp(5)
         
         # Header Hasil
-        MDGridLayout:
-            cols: 3
-            size_hint_y: None
-            height: dp(40)
-            md_bg_color: (0.92, 0.92, 0.92, 1) # Abu-abu muda
-            
-            MDLabel:
-                text: "Nama File"
-                bold: True
-                halign: "left"
-                valign: "middle"
-                padding_x: dp(5)
-                size_hint_x: 0.6
-            MDLabel:
-                text: "Ukuran"
-                bold: True
-                halign: "center"
-                valign: "middle"
-                size_hint_x: 0.15
-            MDLabel:
-                text: "Status"
-                bold: True
-                halign: "center"
-                valign: "middle"
-                size_hint_x: 0.25
-
-        # Scrollable List Hasil
         MDScrollView:
             size_hint_y: 1
             bar_width: dp(10)
-            MDGridLayout:
-                id: result_file_list_grid
-                cols: 3
+            
+            MDBoxLayout:
+                orientation: 'vertical'
                 size_hint_y: None
                 height: self.minimum_height
-                row_default_height: dp(40)
-                row_force_default: True
-                spacing: dp(1)
-                md_bg_color: app.theme_cls.divider_color
+                spacing: 0
+                
+                MDGridLayout:
+                    cols: 3
+                    size_hint_y: None
+                    height: dp(40)
+                    md_bg_color: (0.92, 0.92, 0.92, 1) # Abu-abu muda
+                    
+                    MDLabel:
+                        text: "Nama File"
+                        bold: True
+                        halign: "left"
+                        valign: "middle"
+                        padding_x: dp(5)
+                        size_hint_x: 0.6
+                    MDLabel:
+                        text: "Ukuran"
+                        bold: True
+                        halign: "center"
+                        valign: "middle"
+                        size_hint_x: 0.15
+                    MDLabel:
+                        text: "Status"
+                        bold: True
+                        halign: "center"
+                        valign: "middle"
+                        size_hint_x: 0.25
+                
+                MDGridLayout:
+                    id: result_file_list_grid
+                    cols: 3
+                    size_hint_y: None
+                    height: self.minimum_height
+                    row_default_height: dp(40)
+                    row_force_default: True
+                    spacing: dp(1)
+                    md_bg_color: app.theme_cls.divider_color
 
         # Layout container untuk menengahkan tombol
         MDBoxLayout:
@@ -852,17 +924,18 @@ KV = """
             spacing: dp(15)
             padding: dp(15), 0
             
-            MDFillRoundFlatButton:
-                id: save_button_result
-                text: 'Unduh Semua'
-                on_release: app.root.main_screen.save_result() 
-                disabled: True
-
-            MDFillRoundFlatButton:
+            MDFillRoundFlatIconButton:
                 text: "Konversi Lagi"
+                icon: 'refresh'
                 on_release: app.root.go_to_main_screen()
                 md_bg_color: app.theme_cls.accent_color
-
+            
+            MDFillRoundFlatIconButton:
+                id: save_button_result
+                text: 'Unduh Semua'
+                icon: 'download-multiple'
+                on_release: app.root.main_screen.save_result() 
+                disabled: True
 
 # --- SCREEN MANAGER (ROOT WIDGET) ---
 <RootScreenManager>:
@@ -885,6 +958,10 @@ class DownloadButtonCell(MDBoxLayout):
 
 class ResultSuccessCell(MDBoxLayout):
     """Widget kustom untuk sel di grid hasil yang berisi tombol unduh."""
+    file_index = NumericProperty(-1)
+    
+class WaitingCellWithDelete(MDBoxLayout):
+    """Sel kustom yang menampilkan 'Menunggu' dengan tombol X untuk menghapus."""
     file_index = NumericProperty(-1)
     
 # Untuk MainScreen
@@ -976,39 +1053,88 @@ class MainScreen(MDScreen):
         
         # Atur batas maksimal file
         self.max_files = 5
-        self.dialog = None # Untuk "SweetAlert"
+        self.dialog = None
 
     def show_alert(self, title, text):
-        """Menampilkan dialog peringatan (mirip SweetAlert) dengan pesan kustom."""
+        """Menampilkan dialog peringatan."""
         if self.dialog:
             self.dialog.dismiss()
         
-        # Buat dialog HANYA dengan properti __init__ yang valid
-        self.dialog = MDDialog(
-            title=title,
+        # Buat label teks dengan binding untuk halign
+        text_label = MDLabel(
             text=text,
-            buttons=[
-                MDFillRoundFlatButton(
-                    text="OK",
-                    on_release=lambda x: self.dialog.dismiss()
-                )
-            ]
+            theme_text_color="Primary",
+            halign='center',
+            valign='top',
+            size_hint_y=None,
+            height=dp(100),
+            markup=True
         )
         
-        # Atur properti alignment SETELAH objek dibuat (untuk KivyMD v1.x)
-        try:
-            self.dialog.title_halign = "center"
-            self.dialog.text_halign = "center"
-            self.dialog.buttons_halign = "center"
-        except Exception as e:
-            # Fallback untuk KivyMD v0.104.x
-            print(f"Gagal mengatur halign (mungkin KivyMD v0.104): {e}")
+        # Binding untuk halign='center' bekerja
+        text_label.bind(
+            width=lambda instance, value: setattr(instance, 'text_size', (value, None))
+        )
+        
+        # Container untuk content
+        content_box = MDBoxLayout(
+            orientation='vertical',
+            size_hint_y=None,
+            height=dp(150),
+            padding=[dp(20), dp(10), dp(20), dp(10)],
+            spacing=dp(15)
+        )
+        content_box.add_widget(text_label)
+        
+        # Container untuk tombol dengan spacer kiri-kanan
+        button_box = MDBoxLayout(
+            orientation='horizontal',
+            size_hint_y=None,
+            height=dp(40)
+        )
+        
+        # Spacer kiri
+        button_box.add_widget(Widget())
+        
+        # Tombol OK di tengah
+        ok_button = MDFillRoundFlatButton(
+            text="OK",
+            size_hint=(None, None),
+            size=(dp(100), dp(40)),
+            on_release=lambda x: self.dialog.dismiss()
+        )
+        button_box.add_widget(ok_button)
+        
+        # Spacer kanan
+        button_box.add_widget(Widget())
+        
+        # Tambahkan button box ke content
+        content_box.add_widget(button_box)
+        
+        # Buat dialog tanpa parameter buttons (karena kita sudah masukkan ke content)
+        self.dialog = MDDialog(
+            title=title,
+            type="custom",
+            content_cls=content_box,
+            size_hint=(0.85, None),
+            height=dp(300),
+            auto_dismiss=False
+        )
+        
+        # Atur title alignment dengan binding
+        def set_title_center(*args):
             try:
-                self.dialog.title_align = "center"
-                self.dialog.text_align = "center"
-            except Exception as e2:
-                print(f"Gagal mengatur align: {e2}")
-
+                title_widget = self.dialog.ids.title
+                title_widget.halign = 'center'
+                title_widget.bind(
+                    width=lambda inst, val: setattr(inst, 'text_size', (val, None))
+                )
+            except:
+                pass
+        
+        # Delay sedikit untuk memastikan widget sudah dibuat
+        Clock.schedule_once(set_title_center, 0.1)
+        
         self.dialog.open()
 
     def create_format_menu(self, dt):
@@ -1079,6 +1205,8 @@ class MainScreen(MDScreen):
         self.ids.file_list_container.opacity = 0
         self.ids.file_list_container.size_hint_y = None
         self.ids.file_list_container.height = 0
+        self.ids.main_screen_spacer.size_hint_y = 1
+        self.ids.main_screen_spacer.height = dp(1)
         
         self.ids.button_toolbar.opacity = 1
         self.ids.button_toolbar.size_hint_y = None
@@ -1198,6 +1326,8 @@ class MainScreen(MDScreen):
             self.ids.file_list_container.opacity = 1
             self.ids.file_list_container.size_hint_y = 1
             self.ids.file_list_container.height = 0
+            self.ids.main_screen_spacer.size_hint_y = None
+            self.ids.main_screen_spacer.height = 0
         
         start_index = len(self.file_list)
 
@@ -1219,10 +1349,11 @@ class MainScreen(MDScreen):
                     size_hint_x=0.15,
                     color=(0, 0, 0, 1)  # Hitam eksplisit
                 )
-                progress_widget = ProgressTextCell(
-                    text="Menunggu",
-                    size_hint_x=0.25,
-                    color=(0.5, 0.5, 0.5, 1)  # Abu-abu eksplisit
+                
+                # Gunakan WaitingCellWithDelete yang memiliki tombol X
+                progress_widget = WaitingCellWithDelete(
+                    file_index=current_index,
+                    size_hint_x=0.25
                 )
 
                 self.ids.file_list_grid.add_widget(label_name)
@@ -1282,8 +1413,8 @@ class MainScreen(MDScreen):
         if not any(f['status'] == 'pending' for f in self.file_list):
             self.ids.status_label.text = "Menyiapkan konversi ulang..."
             for i, f_info in enumerate(self.file_list):
-                 if f_info['status'] != 'pending':
-                     self.reset_progress_widget(i)
+                if f_info['status'] != 'pending':
+                    self.reset_progress_widget(i)
 
         selected_format = self.selected_format
         if selected_format not in ['XLSX', 'CSV', 'ODS']:
@@ -1301,30 +1432,113 @@ class MainScreen(MDScreen):
         
         self.ids.status_label.text = "Memulai konversi..."
 
+        grid = self.ids.file_list_grid
+        for i, f_info in enumerate(self.file_list):
+            if f_info['status'] == 'pending':
+                current_widget = f_info.get('progress_widget')
+                
+                if current_widget and isinstance(current_widget, WaitingCellWithDelete):
+                    try:
+                        widget_index = grid.children.index(current_widget)
+                        grid.remove_widget(current_widget)
+                        
+                        # Buat widget "Menunggu" tanpa tombol X
+                        new_progress_widget = ProgressTextCell(
+                            text="Menunggu",
+                            size_hint_x=0.25,
+                            color=(0.5, 0.5, 0.5, 1)  # Abu-abu
+                        )
+                        
+                        grid.add_widget(new_progress_widget, index=widget_index)
+                        f_info['progress_widget'] = new_progress_widget
+                        f_info['progress_container'] = new_progress_widget
+                        
+                    except Exception as e:
+                        print(f"Error mengganti widget untuk index {i}: {e}")
+
         first_pending_index = -1
         for i, f_info in enumerate(self.file_list):
-             # Pastikan semua widget direset jika statusnya bukan 'pending'
-             if f_info['status'] != 'pending':
-                 self.reset_progress_widget(i)
-             if f_info['status'] == 'pending':
-                 if first_pending_index == -1:
-                     first_pending_index = i
+            if f_info['status'] == 'pending':
+                if first_pending_index == -1:
+                    first_pending_index = i
 
         if first_pending_index != -1:
             self.current_processing_index = first_pending_index
             self._process_next_file()
         else:
-             # Tidak ada file yang valid untuk diproses
-             self.is_processing = False
-             self.ids.button_toolbar.opacity = 1
-             self.ids.button_toolbar.size_hint_y = None
-             self.ids.button_toolbar.height = dp(48)
-             self.ids.select_button.disabled = False
-             self.ids.status_label.text = "Tidak ada file yang perlu diproses."
+            # Tidak ada file yang valid untuk diproses
+            self.is_processing = False
+            self.ids.button_toolbar.opacity = 1
+            self.ids.button_toolbar.size_hint_y = None
+            self.ids.button_toolbar.height = dp(48)
+            self.ids.select_button.disabled = False
+            self.ids.status_label.text = "Tidak ada file yang perlu diproses."
 
     @mainthread
+    def remove_file_from_list(self, file_index):
+        """Menghapus file dari daftar berdasarkan index."""
+        if self.is_processing:
+            self.show_alert("Sedang Memproses", "Tidak dapat menghapus file saat proses konversi sedang berjalan.")
+            return
+        
+        if not (0 <= file_index < len(self.file_list)):
+            print(f"Error: Index {file_index} tidak valid untuk dihapus.")
+            return
+        
+        file_info = self.file_list[file_index]
+        
+        # Hanya boleh dihapus jika statusnya 'pending'
+        if file_info['status'] != 'pending':
+            self.show_alert("Tidak Dapat Dihapus", "File ini sudah diproses atau sedang dalam proses.")
+            return
+        
+        grid = self.ids.file_list_grid
+        
+        # Hapus 3 widget (nama, ukuran, progres) dari grid
+        widgets_to_remove = []
+        try:
+            # Index widget di grid (dari belakang): file ke-N ada di posisi (total_files - N - 1) * 3
+            widget_start_index = (len(self.file_list) - file_index - 1) * 3
+            for i in range(3):
+                idx = widget_start_index + i
+                if idx < len(grid.children):
+                    widgets_to_remove.append(grid.children[idx])
+        except Exception as e:
+            print(f"Error saat mencari widget untuk dihapus: {e}")
+            return
+        
+        # Hapus widget dari grid
+        for widget in widgets_to_remove:
+            grid.remove_widget(widget)
+        
+        # Hapus dari file_list
+        removed_file_name = file_info['name']
+        self.file_list.pop(file_index)
+        
+        # Re-index semua file yang tersisa dan update widget mereka
+        for i, f in enumerate(self.file_list):
+            f['index'] = i
+            # Update file_index pada widget WaitingCellWithDelete jika ada
+            if f['status'] == 'pending' and isinstance(f['progress_widget'], WaitingCellWithDelete):
+                f['progress_widget'].file_index = i
+        
+        # Update status label
+        total_files = len(self.file_list)
+        if total_files > 0:
+            self.ids.status_label.text = f"{total_files} file siap dikonversi."
+        else:
+            self.ids.status_label.text = f"Silakan pilih file (maks {self.max_files}) dan klik Konversi."
+            # Sembunyikan container jika tidak ada file
+            self.ids.file_list_container.opacity = 0
+            self.ids.file_list_container.size_hint_y = None
+            self.ids.file_list_container.height = 0
+            self.ids.main_screen_spacer.size_hint_y = 1
+            self.ids.main_screen_spacer.height = dp(1)
+        
+        print(f"File '{removed_file_name}' berhasil dihapus dari daftar.")
+    @mainthread
     def reset_progress_widget(self, file_index):
-        """Mereset status visual widget di grid ke 'Menunggu'."""
+        """Mereset status visual widget di grid ke 'Menunggu' dengan tombol X."""
         if 0 <= file_index < len(self.file_list):
             file_info = self.file_list[file_index]
             grid = self.ids.file_list_grid
@@ -1344,11 +1558,10 @@ class MainScreen(MDScreen):
             widget_index = grid.children.index(current_widget)
             grid.remove_widget(current_widget)
 
-            # Buat widget label "Menunggu" yang baru dengan color eksplisit
-            new_widget = ProgressTextCell(
-                text="Menunggu",
-                size_hint_x=0.25,
-                color=(0.5, 0.5, 0.5, 1)  # Abu-abu eksplisit
+            # Buat widget WaitingCellWithDelete yang baru (dengan tombol X)
+            new_widget = WaitingCellWithDelete(
+                file_index=file_index,
+                size_hint_x=0.25
             )
             
             grid.add_widget(new_widget, index=widget_index)
@@ -1374,7 +1587,7 @@ class MainScreen(MDScreen):
             self.ids.status_label.text = f"Memproses file {self.current_processing_index + 1}/{len(self.file_list)}: {file_info['name']}..."
 
             progress_widget = file_info['progress_widget']
-            if progress_widget and isinstance(progress_widget, MDLabel):
+            if progress_widget and isinstance(progress_widget, (MDLabel, ProgressTextCell)):
                 progress_widget.text = "Memproses..."
                 progress_widget.color = (0, 0, 0, 1)  # Hitam eksplisit
 
