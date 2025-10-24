@@ -7,9 +7,9 @@ on:
   workflow_dispatch: # Memperbolehkan trigger manual
 env:
   APP_NAME: "PDFExtract"
-  PYTHON_VERSION: "3.12.6"
+  PYTHON_VERSION: "3.12.7"
   POPPLER_VERSION: "25.07.0"
-  PYTHON_EMBED_ZIP: "python-3.12.6-embed-amd64.zip"
+  PYTHON_EMBED_ZIP: "python-3.12.7-embed-amd64.zip"
   POPPLER_ZIP: "Release-25.07.0-0.zip"
   POPPLER_DIR_NAME: "poppler-25.07.0"
   STAGING_DIR: "dist" # Folder sementara untuk menampung semua file installer
@@ -91,13 +91,15 @@ jobs:
         echo "Membuat direktori wheels..."
         mkdir ${{ env.STAGING_DIR }}\wheels
 
-        # Langkah 1: Buat file requirements sementara tanpa 'odfpy'
-        echo "Membuat file requirements sementara tanpa odfpy..."
+        # Langkah 1: Buat file requirements sementara tanpa 'odfpy' dan 'trio'
+        echo "Membuat file requirements sementara tanpa source packages (odfpy, trio)..."
         $req_file = "${{ env.STAGING_DIR }}\requirements.txt"
         $temp_req_file = "${{ env.STAGING_DIR }}\temp_binary_reqs.txt"
-        Get-Content $req_file | Select-String -Pattern "odfpy" -NotMatch | Set-Content $temp_req_file
+        
+        # Gunakan regex 'atau' (|) untuk mengecualikan keduanya
+        Get-Content $req_file | Select-String -Pattern "odfpy|trio" -NotMatch | Set-Content $temp_req_file
 
-        # Langkah 2: Unduh semua library binary yang kompatibel dengan Python 3.12 x64
+        # Langkah 2: Unduh semua library binary yang kompatibel (dari file temp)
         echo "Mengunduh hanya binary wheels..."
         pip download -d ${{ env.STAGING_DIR }}\wheels `
           -r $temp_req_file `
@@ -107,9 +109,9 @@ jobs:
           --abi abi3 `
           --only-binary=:all:
 
-        # Langkah 3: Unduh 'odfpy' (source package) secara terpisah
-        echo "Mengunduh Source Packages (odfpy)..."
-        pip download -d ${{ env.STAGING_DIR }}\wheels odfpy
+        # Langkah 3: Unduh 'odfpy' dan 'trio' (source packages) secara terpisah
+        echo "Mengunduh Source Packages (odfpy, trio)..."
+        pip download -d ${{ env.STAGING_DIR }}\wheels odfpy trio
 
         # Langkah 4: Unduh pip, setuptools, dan wheel
         echo "Mengunduh pip, setuptools, dan wheel..."
