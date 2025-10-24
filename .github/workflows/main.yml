@@ -7,9 +7,9 @@ on:
   workflow_dispatch: # Memperbolehkan trigger manual
 env:
   APP_NAME: "PDFExtract"
-  PYTHON_VERSION: "3.12.7"
+  PYTHON_VERSION: "3.12.6"
   POPPLER_VERSION: "25.07.0"
-  PYTHON_EMBED_ZIP: "python-3.12.7-embed-amd64.zip"
+  PYTHON_EMBED_ZIP: "python-3.12.6-embed-amd64.zip"
   POPPLER_ZIP: "Release-25.07.0-0.zip"
   POPPLER_DIR_NAME: "poppler-25.07.0"
   STAGING_DIR: "dist" # Folder sementara untuk menampung semua file installer
