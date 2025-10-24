@@ -76,15 +76,25 @@ Source: "dist\get-pip.py"; DestDir: "{app}"
 
 [Run]
 ; 1. Memasang Pip (Langkah pertama, wajib untuk instalasi library)
-; Ini akan membuat folder 'Scripts' dan 'pip.exe'
-Filename: "{app}\python\python.exe"; Parameters: """{app}\get-pip.py"""; WorkingDir: "{app}"; StatusMsg: "Memasang Pip..."; Flags: runhidden
+;    Menjalankan get-pip.py secara offline menggunakan wheels yang sudah di-bundle
+Filename: "{app}\python\python.exe"; \
+  Parameters: """{app}\get-pip.py"" --no-index --find-links=""{app}\wheels"""; \
+  WorkingDir: "{app}"; \
+  StatusMsg: "Memasang Pip..."; \
+  Flags: runhidden
 
 ; 2. Menjalankan batch script untuk menginstal library dari folder 'wheels'
-; Skrip ini sekarang akan berhasil karena pip.exe sudah ada
-Filename: "{app}\install_libs.bat"; WorkingDir: "{app}"; StatusMsg: "Memasang library Python... Ini mungkin perlu beberapa saat."; Flags: runhidden
+Filename: "{app}\install_libs.bat"; \
+  WorkingDir: "{app}"; \
+  StatusMsg: "Memasang library Python... Ini mungkin perlu beberapa saat."; \
+  Flags: runhidden
 
 ; 3. (Opsional) Menjalankan aplikasi setelah instalasi selesai jika user mencentang box
-Filename: "{app}\python\{#MyAppExeName}"; Parameters: """{app}\main.py"""; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\python\{#MyAppExeName}"; \
+  Parameters: """{app}\main.py"""; \
+  WorkingDir: "{app}"; \
+  Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; \
+  Flags: nowait postinstall skipifsilent
 
 [Icons]
 ; Membuat shortcut di Start Menu

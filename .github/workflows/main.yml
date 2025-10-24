@@ -111,6 +111,10 @@ jobs:
         echo "Mengunduh Source Packages (odfpy)..."
         pip download -d ${{ env.STAGING_DIR }}\wheels odfpy
 
+        # Langkah 4: Unduh pip, setuptools, dan wheel
+        echo "Mengunduh pip, setuptools, dan wheel..."
+        pip download -d ${{ env.STAGING_DIR }}\wheels pip setuptools wheel
+
     # 10. Menginstal Inno Setup (software pembuat installer)
     - name: Install Inno Setup
       shell: pwsh
