@@ -25,9 +25,9 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 
 ; Ikon untuk installer (diambil dari variabel GitHub Actions)
-SetupIconFile=dist\pdfextract.ico
+SetupIconFile=dist\icon.ico
 ; Ikon untuk Uninstaller di Control Panel
-UninstallDisplayIcon={app}\pdfextract.ico
+UninstallDisplayIcon={app}\icon.ico
 ; Nama file output installer
 OutputBaseFilename=PDFExtract-Setup-v{#MyAppVersion}
 
@@ -71,7 +71,7 @@ Source: "dist\wheels\*"; DestDir: "{app}\wheels"; Flags: recursesubdirs createal
 Source: "dist\main.py"; DestDir: "{app}"
 Source: "dist\requirements.txt"; DestDir: "{app}"
 Source: "dist\install_libs.bat"; DestDir: "{app}"
-Source: "dist\pdfextract.ico"; DestDir: "{app}"
+Source: "dist\icon.ico"; DestDir: "{app}"
 Source: "dist\get-pip.py"; DestDir: "{app}"
 Source: "dist\vc_redist.x64.exe"; DestDir: "{app}"; Flags: deleteafterinstall
 
@@ -113,7 +113,7 @@ Name: "{group}\{#MyAppName}"; \
   Filename: "{app}\python\{#MyAppExeName}"; \
   Parameters: """{app}\main.py"""; \
   WorkingDir: "{app}"; \
-  IconFilename: "{app}\pdfextract.ico"
+  IconFilename: "{app}\icon.ico"
 
 ; Membuat shortcut Uninstaller di Start Menu
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"

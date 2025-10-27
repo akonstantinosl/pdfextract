@@ -87,7 +87,7 @@ jobs:
         copy main.py ${{ env.STAGING_DIR }}\main.py
         copy requirements.txt ${{ env.STAGING_DIR }}\requirements.txt
         copy install_libs.bat ${{ env.STAGING_DIR }}\install_libs.bat
-        copy assets\img\pdfextract.ico ${{ env.STAGING_DIR }}\pdfextract.ico
+        copy assets\img\icon.ico ${{ env.STAGING_DIR }}\icon.ico
         xcopy /E /I /Q models ${{ env.STAGING_DIR }}\models
 
     # 10. Mengunduh semua library Python (wheels) secara offline
@@ -174,7 +174,7 @@ jobs:
         cd ${{ github.workspace }}
 
         REM Definisikan path absolut ke ikon DI DALAM folder 'dist'
-        set SETUP_ICON_PATH=%CD%\${{ env.STAGING_DIR }}\pdfextract.ico
+        set SETUP_ICON_PATH=%CD%\${{ env.STAGING_DIR }}\icon.ico
 
         REM Menjalankan compiler Inno Setup (iscc)
         REM /DMyAppVersion mengirimkan versi ke script .iss
