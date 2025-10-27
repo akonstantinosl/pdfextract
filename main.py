@@ -507,7 +507,7 @@ def process_pdf(pdf_path, progress_callback=None):
                 dpi=300,
                 first_page=i,
                 last_page=i,
-                timeout=60
+                timeout=3600
             )[0]
 
             img_array = np.array(page_image.convert('RGB'))
@@ -547,6 +547,8 @@ def process_image(image_path):
 Window.clearcolor = (1, 1, 1, 1)
 
 KV = """
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+
 # --- Definisi Cell (MainScreen) ---
 <GridCellLabel@MDLabel>:
     theme_text_color: "Primary"
@@ -930,13 +932,13 @@ KV = """
                 text: "Konversi Lagi"
                 icon: 'refresh'
                 on_release: app.root.go_to_main_screen()
-                md_bg_color: app.theme_cls.accent_color
-            
+                md_bg_color: get_color_from_hex("#FF9800")
+
             MDFillRoundFlatIconButton:
                 id: save_button_result
                 text: 'Unduh Semua'
                 icon: 'download-multiple'
-                on_release: app.root.main_screen.save_result() 
+                on_release: app.root.main_screen.save_result()
                 disabled: True
 
 # --- SCREEN MANAGER (ROOT WIDGET) ---
