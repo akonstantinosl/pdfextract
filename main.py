@@ -524,7 +524,7 @@ def process_pdf(pdf_path, progress_callback=None):
         except Exception as e:
             print(f"Gagal memproses halaman {i} dari {pdf_path}: {e}")
             if progress_callback:
-                 progress_callback(i, total_pages, error=True, message=f"Hal {i} Gagal")
+                 progress_callback(i, total_pages, error=True, message=f"Halaman {i} Gagal")
             continue
 
     return all_tables, sheet_names
