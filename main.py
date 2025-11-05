@@ -241,16 +241,7 @@ def text_based_table_detection(img_array, gray):
                 table_candidates.append((int(x_min), int(y_min), int(x_max - x_min), int(y_max - y_min), empty_lines, empty_lines))
     return table_candidates
 
-def detect_cells_from_text(text_items, table_width, table_height):
-    """Mengelompokkan koordinat X dan Y dari teks untuk menyimpulkan batas baris dan kolom (grid imajiner)."""
-    if not text_items:
-        return None, None
-    avg_height = sum(item['height'] for item in text_items) / len(text_items)
-    avg_width = sum(item['width'] for item in text_items) / len(text_items)
-    sorted_by_y = sorted(text_items, key=lambda t: t['y_center'])
-    y_centers = [t['y_center'] for t in sorted_by_y]
-    y_threshold = max(avg_height * 0.8, 10)
-    def cluster_coordinates(coords, threshold):
+def cluster_coordinates(coords, threshold):
         clusters = []
         if not coords:
             return clusters
@@ -267,24 +258,126 @@ def detect_cells_from_text(text_items, table_width, table_height):
         if current_cluster:
             clusters.append(sum(current_cluster) / len(current_cluster))
         return clusters
-    row_centers = cluster_coordinates(y_centers, y_threshold)
+
+def infer_grid_by_centers(text_items, table_width, table_height, cluster_coordinates_func):
+    """
+    Menyimpulkan grid berdasarkan pengelompokan (clustering) titik TENGAH (centers) X dan Y.
+    """
+    if not text_items:
+        return None, None
+
+    avg_height = sum(item['height'] for item in text_items) / len(text_items)
+    avg_width = sum(item['width'] for item in text_items) / len(text_items)
+
+    # Pengelompokan Y Baris
+    sorted_by_y = sorted(text_items, key=lambda t: t['y_center'])
+    y_centers = [t['y_center'] for t in sorted_by_y]
+    y_threshold = max(avg_height * 0.8, 10)
+    
+    # Gunakan fungsi yang di-pass sebagai argumen
+    row_centers = cluster_coordinates_func(y_centers, y_threshold)
+    
     row_boundaries = [0]
     for i in range(len(row_centers) - 1):
         boundary = int((row_centers[i] + row_centers[i+1]) / 2)
         row_boundaries.append(boundary)
     row_boundaries.append(int(table_height))
+
+    # Pengelompokan X kolom
     sorted_by_x = sorted(text_items, key=lambda t: t['x_center'])
     x_centers = [t['x_center'] for t in sorted_by_x]
     x_threshold = max(avg_width * 0.8, 20)
-    col_centers = cluster_coordinates(x_centers, x_threshold)
+    
+    # Gunakan fungsi yang di-pass sebagai argumen
+    col_centers = cluster_coordinates_func(x_centers, x_threshold)
+    
     col_boundaries = [0]
     for i in range(len(col_centers) - 1):
         boundary = int((col_centers[i] + col_centers[i+1]) / 2)
         col_boundaries.append(boundary)
     col_boundaries.append(int(table_width))
+
     return row_boundaries, col_boundaries
 
-def process_table_ocr(ocr_results, table_rect, use_inferred_grid=True):
+def infer_grid_by_gaps(text_items, table_width, table_height, cluster_coordinates_func):
+    """
+    Menyimpulkan grid dengan mencari 'RUANG KOSONG' (gaps) di antara gugusan (clusters) tepi kiri/kanan teks.
+    """
+    if not text_items:
+        return None, None
+
+    # Utilitas Pembersihan Batas
+    def clean_boundaries(boundaries, min_dist):
+        if not boundaries: return []
+        cleaned = [boundaries[0]]
+        for i in range(1, len(boundaries)):
+            if (boundaries[i] - cleaned[-1]) >= min_dist:
+                cleaned.append(boundaries[i])
+        # Pastikan batas terakhir ada
+        if boundaries[-1] not in cleaned:
+             if (boundaries[-1] - cleaned[-1]) >= min_dist:
+                 cleaned.append(boundaries[-1])
+             else:
+                 cleaned[-1] = boundaries[-1] # Ganti yang terakhir
+        return cleaned
+
+    # Temukan Batas Baris
+    avg_height = sum(item['height'] for item in text_items) / len(text_items)
+    y_threshold = max(avg_height * 0.8, 10)
+    y_centers = sorted([t['y_center'] for t in text_items])
+    
+    row_centers = cluster_coordinates_func(y_centers, y_threshold)
+    
+    row_boundaries = [0]
+    for i in range(len(row_centers) - 1):
+        boundary = int((row_centers[i] + row_centers[i+1]) / 2)
+        if boundary > row_boundaries[-1]:
+            row_boundaries.append(boundary)
+    row_boundaries.append(int(table_height))
+    
+    final_row_boundaries = clean_boundaries(row_boundaries, max(avg_height * 0.2, 5))
+
+    # Temukan Batas Kolom
+    avg_width = sum(item['width'] for item in text_items) / len(text_items)
+    # Threshold lebih kecil untuk mengelompokkan tepi
+    x_threshold = max(avg_width * 0.5, 15) 
+    
+    x_starts = sorted([t['x'] for t in text_items])
+    x_ends = sorted([t['x'] + t['width'] for t in text_items])
+    
+    # Kelompokkan semua tepi kiri dan tepi kanan
+    col_starts = cluster_coordinates_func(x_starts, x_threshold)
+    col_ends = cluster_coordinates_func(x_ends, x_threshold)
+    
+    # Gabungkan semua garis vertikal yang mungkin
+    all_x_lines = sorted(list(set(col_starts + col_ends)))
+    
+    if not all_x_lines:
+        return final_row_boundaries, [0, int(table_width)] # Fallback
+
+    col_boundaries = [0]
+    # Gap minimal antar kolom (harus lebih besar dari noise)
+    min_gap_threshold = max(avg_width * 0.1, 8) 
+    
+    for i in range(len(all_x_lines) - 1):
+        gap_start = all_x_lines[i]
+        gap_end = all_x_lines[i+1]
+        gap_width = gap_end - gap_start
+        
+        # Jika ada 'gap' yang signifikan
+        if gap_width > min_gap_threshold:
+            # Taruh batas kolom di tengah-tengah gap
+            boundary = int(gap_start + gap_width / 2)
+            if boundary > col_boundaries[-1]:
+                col_boundaries.append(boundary)
+                
+    col_boundaries.append(int(table_width))
+    
+    final_col_boundaries = clean_boundaries(col_boundaries, max(avg_width * 0.2, 10))
+
+    return final_row_boundaries, final_col_boundaries
+
+def process_table_ocr(ocr_results, table_rect, use_inferred_grid=True, grid_engine='gaps'):
     """Mengekstrak teks di dalam batas tabel dan memetakannya ke struktur sel (baris/kolom) berdasarkan grid yang disimpulkan."""
     x_table, y_table, w_table, h_table = table_rect[:4]
     if not ocr_results or len(ocr_results[0]) == 0:
@@ -306,31 +399,70 @@ def process_table_ocr(ocr_results, table_rect, use_inferred_grid=True):
                 })
     if not table_texts:
         return None
+
     if use_inferred_grid:
-        row_boundaries, col_boundaries = detect_cells_from_text(table_texts, w_table, h_table)
+        row_boundaries, col_boundaries = None, None
+        
+        # Coba engine 'gaps' terlebih dahulu jika diminta
+        if grid_engine == 'gaps':
+            row_boundaries, col_boundaries = infer_grid_by_gaps(
+                table_texts, w_table, h_table, cluster_coordinates_func=cluster_coordinates
+            )
+        
+        # Jika 'gaps' gagal, engine 'centers' yang diminta
+        if not row_boundaries or not col_boundaries or grid_engine == 'centers':
+            row_boundaries, col_boundaries = infer_grid_by_centers(
+                table_texts, w_table, h_table, cluster_coordinates_func=cluster_coordinates
+            )
+
         if row_boundaries and col_boundaries and len(row_boundaries) > 1 and len(col_boundaries) > 1:
             num_rows = len(row_boundaries) - 1
             num_cols = len(col_boundaries) - 1
+            
+            # --- (Opsional) Logika Anti-Gabung yang Lebih Ketat ---
+            # Kita bisa membuat 'sel' berisi list, bukan string, 
+            # untuk melihat bagaimana teks digabungkan.
+            # table_data = [[[] for _ in range(num_cols)] for _ in range(num_rows)]
+            
             table_data = [[''] * num_cols for _ in range(num_rows)]
+
             for text_item in table_texts:
                 row_idx = None
                 for i in range(len(row_boundaries) - 1):
+                    # Gunakan y_center untuk menentukan baris
                     if row_boundaries[i] <= text_item['y_center'] < row_boundaries[i+1]:
                         row_idx = i
                         break
+                
                 col_idx = None
                 for i in range(len(col_boundaries) - 1):
+                    # Gunakan x_center untuk menentukan kolom
                     if col_boundaries[i] <= text_item['x_center'] < col_boundaries[i+1]:
                         col_idx = i
                         break
+
                 if row_idx is not None and col_idx is not None:
                     if row_idx < num_rows and col_idx < num_cols:
+                        
+                        # (Opsional) Logika untuk list
+                        # table_data[row_idx][col_idx].append(text_item['text'])
+                        
+                        # Logika penggabungan standar
                         if table_data[row_idx][col_idx]:
                             table_data[row_idx][col_idx] += ' ' + text_item['text']
                         else:
                             table_data[row_idx][col_idx] = text_item['text']
+
+            # (Opsional) Jika menggunakan list, gabungkan sekarang
+            # final_table_data = []
+            # for row in table_data:
+            #     final_table_data.append([' '.join(sorted(cell_texts)) for cell_texts in row])
+            # return final_table_data
+            
             return table_data
+
     # Fallback jika grid imajiner gagal
+    print("Grid imajiner gagal, beralih ke reconstruct_table...")
     return reconstruct_table(table_texts, w_table, h_table)
 
 def reconstruct_table(texts, table_width, table_height):
@@ -478,7 +610,6 @@ def process_image_for_tables(img_array):
             df = pd.DataFrame(table_data)
             tables.append(df)
     return tables
-
 
 def process_pdf(pdf_path, progress_callback=None):
     """Mengkonversi setiap halaman PDF menjadi gambar, lalu memproses setiap gambar untuk tabel."""
